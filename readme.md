@@ -9,6 +9,8 @@ A fun interactive web application that creates a dynamic sticker wall where user
 - WebSocket server for real-time updates
 - Dockerized deployment support
 - Static file serving for stickers and web assets
+- Stickers move around to not stay only one place
+- Resize stickers based on quantity
 
 ## Prerequisites
 

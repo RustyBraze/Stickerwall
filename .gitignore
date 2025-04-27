@@ -7,6 +7,7 @@ compose.yml
 public/stickers/*
 public/stickers/*.*
 
+.idea/
 
 
 # Byte-compiled / optimized / DLL files
