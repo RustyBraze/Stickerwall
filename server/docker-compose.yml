@@ -1,0 +1,37 @@
+services:
+  server:
+    build: ./server
+    container_name: stickerwall_server
+    restart: unless-stopped
+    env_file: ".env"
+
+    volumes:
+      - ./server/stickers:/app/stickers
+      - ./server/config.json:/app/config.json
+
+    ports:
+      - "8000:8000"
+
+    networks:
+      - sticker_net
+
+  bot:
+    build: ./bot
+    container_name: stickerwall_bot
+    restart: unless-stopped
+    env_file: ".env"
+
+    environment:
+      - PYTHONUNBUFFERED=1
+#      - BOT_TOKEN=${BOT_TOKEN}
+#      - WEBSOCKET_SERVER_URI=ws://server:8000/ws
+
+    depends_on:
+      - server
+
+    networks:
+      - sticker_net
+
+networks:
+  sticker_net:
+    driver: bridge

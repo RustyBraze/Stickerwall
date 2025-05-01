@@ -2,8 +2,8 @@
 // Basic Parameters
 // #############################################################################
 
-let enableBoxes = false; // Enable this to see the borders and limits
-const enableDebug = false; // Enable this to see internal messages
+let enableBoxes = true; // Enable this to see the borders and limits
+const enableDebug = true; // Enable this to see internal messages
 
 const stickersLimit = 150;
 let stickers = []; // holds all stickers
@@ -294,7 +294,7 @@ function addSticker(stickerPath) {
 // -----------------------------------------------------------------------------
 // Function to get a random gravity value between -0.1 and 0.1
 function getRandomGravity() {
-    return (Math.random() * 0.2) - 0.1;
+    return (Math.random() * 0.1) - 0.1;
 }
 
 // Function to reset gravity to zero
@@ -483,7 +483,7 @@ class WebSocketClient {
 
         }
 
-        canvas_context.lineWidth = 6;
+        canvas_context.lineWidth = 4;
         canvas_context.strokeStyle = '#ff0000';
         canvas_context.stroke();
     }

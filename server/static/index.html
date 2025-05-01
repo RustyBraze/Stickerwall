@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sticker Party!</title>
+    <style>
+        html, body {
+            margin: 0;
+            overflow: hidden;
+            background: dimgray;
+            /*background-image: url("https://i.imgur.com/vccw0IO.jpeg");*/
+            background-image: url("img/background1.jpeg");
+            background-repeat: no-repeat;
+            background-size: auto 100%;
+        }
+        canvas {
+            display: block;
+        }
+        /*#stickerDIV {*/
+        /*    position: absolute;*/
+        /*    top: 0;*/
+        /*    left: 0;*/
+        /*    width: 100%;*/
+        /*    height: 100%;*/
+        /*}*/
+
+        #messageDIV {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 25%;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+
+            background: gray;
+            background-blend-mode: overlay;
+            transform: translate(-50%, -50%);
+
+            color: white;
+            font-size: 20px;
+            font-family: 'Courier New', Courier, monospace;
+
+        }
+    </style>
+
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>-->
+    <script src="js/matter.min.js"></script>
+
+</head>
+<body>
+<canvas id="stickerCanvas"></canvas>
+<!--<div id="stickerDIV"></div>-->
+<!--<div id="messageDIV" style="position: absolute; top: 50%; left: 50%; background: gray; background-blend-mode: overlay; transform: translate(-50%, -50%); color: white; font-size: 20px; font-family: 'Courier New', Courier, monospace;">-->
+<div id="messageDIV">
+    <p>Sticker Party! <br> Send your sticker to <strong>@BOTNAME</strong></p>
+</div>
+
+
+<script src="js/wall.js"></script>
+
+</body>
+</html>
