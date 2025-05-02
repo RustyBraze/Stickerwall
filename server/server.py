@@ -310,9 +310,16 @@ async def websocket_telegram_endpoint(websocket: WebSocket):
 
                         if len(recent_stickers) >= defaultUserStickerPolicy["stickerCountMax"]:
                             logging.warning(f"User {message['bot_user']} exceeded sticker limit")
+                            error_message = {
+                                "type": "user_message",
+                                "user_id": message["bot_id"],
+                                "message": f"You've reached the limit of {defaultUserStickerPolicy['stickerCountMax']} stickers per hour. Please try again later."
+                            }
+                            # Broadcast to Bot servers - yup, the only way to work
+                            # TODO: Fix this to return to the only connected client (not an issue because it is only 1 bot connected usually)
+                            for client in connected_telegram_clients:
+                                await client.send_text(json.dumps(error_message))
                             continue
-
-
 
                     # Get the base64 data and save it
                     sticker_data = base64.b64decode(message["sticker_data"])
@@ -343,8 +350,10 @@ async def websocket_telegram_endpoint(websocket: WebSocket):
                     # Modify message for clients
                     client_message = {
                         "type": "sticker",
-                        "bot_user": message["bot_user"],
-                        "bot_id": message["bot_id"],
+                        "action": "new",
+                        # "telegram_user": message["bot_user"],
+                        # "telegram_userid": message["bot_id"],
+                        "sticker_id": message["sticker_id"],
                         "path": sticker_url
                     }
 

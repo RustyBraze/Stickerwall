@@ -119,7 +119,20 @@ async def create_ws_connection():
                         # Wait for any incoming messages
                         message = await websocket.recv()
                         # print(f"Received message from server: {message}")
-                        logger.debug(f"Received message from server: {message}")
+                        # logger.debug("********************************************************")
+                        # logger.debug(f"Received message from server: {message}")
+                        # logger.debug("********************************************************")
+
+                        try:
+                            data = json.loads(message)
+                            if data.get("type") == "user_message":
+                                # Send message to user
+                                await bot.send_message(
+                                    chat_id=data["user_id"],
+                                    text=data["message"]
+                                )
+                        except json.JSONDecodeError:
+                            logger.error(f"Invalid JSON received from server: {message}")
 
                     except Exception as e:
                         # print(f"Error receiving message: {e}")

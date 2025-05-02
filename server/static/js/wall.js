@@ -24,6 +24,133 @@ const canvas_context = canvas.getContext('2d');
 let wallsCreated = false;
 
 
+
+
+
+
+
+// #############################################################################
+// Websock class
+// #############################################################################
+class WebSocketClient {
+    constructor() {
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 99999;
+        this.reconnectDelay = 1000; // Start with 1 second
+        this.connect();
+    }
+
+    getWebSocketUrl() {
+        const hostname = window.location.hostname;
+        const port = window.location.port;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+
+        if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'ws://127.0.0.1:8000/ws/wall';
+        }
+
+        // If there's a specific port, use it; otherwise don't include port in the URL
+        if (port) {
+            return `${protocol}//${hostname}:${port}/ws/wall`;
+        } else {
+            return `${protocol}//${hostname}/ws/wall`;
+        }
+    }
+
+    connect() {
+        this.ws = new WebSocket(this.getWebSocketUrl());
+
+        this.ws.onopen = () => {
+            if (enableDebug) console.log('WebSocket Connected');
+            this.reconnectAttempts = 0;
+            this.reconnectDelay = 1000;
+        };
+
+        this.ws.onclose = () => {
+            if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                if (enableDebug) console.log(`WebSocket Reconnecting... Attempt ${this.reconnectAttempts + 1}`);
+                setTimeout(() => this.connect(), this.reconnectDelay);
+                this.reconnectAttempts++;
+                this.reconnectDelay *= 2; // Exponential backoff
+            } else {
+                console.error('WebSocket Failed to connect after maximum attempts');
+            }
+        };
+
+        this.ws.onerror = (error) => {
+            console.error('WebSocket Error:', error);
+        };
+
+        // Add your message handler
+        // this.ws.onmessage = (event) => {
+        //     const path = event.data;
+        //     if (enableDebug) console.log('New sticker:', path);
+        //     addSticker(path);
+        // };
+
+        this.ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (enableDebug) console.log('Received message:', data);
+
+                if (data.type === 'sticker') {
+                    switch (data.action) {
+                        case 'new':
+                            if (enableDebug) console.log('Adding new sticker:', data.path);
+                            addSticker(data.path, data.sticker_id);
+                            break;
+                        case 'remove':
+                            if (enableDebug) console.log('Removing sticker:', data.sticker_id);
+                            removeSticker(data.sticker_id);
+                            break;
+                        default:
+                            console.warn('Unknown sticker action:', data.action);
+                    }
+                }
+            } catch (error) {
+                // Handle legacy string messages (backward compatibility)
+                if (enableDebug) console.log('Received legacy message:', event.data);
+                addSticker(event.data);
+            }
+        };
+
+
+    }
+
+    // // Method to send messages
+    // send(data) {
+    //     if (this.ws.readyState === WebSocket.OPEN) {
+    //         this.ws.send(data);
+    //     } else {
+    //         console.error('WebSocket is not connected');
+    //     }
+    // }
+
+    // wsClient.onmessage = (event) => {
+    // };
+
+}
+// #############################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // #############################################################################
 // Matter.js Stuff + World stuff
 // #############################################################################
@@ -239,9 +366,10 @@ function updateAllStickerBodiesSizes() {
  * If the limit is exceeded, the oldest sticker is removed to make room for the new one.
  *
  * @param {string} stickerPath - The path to the image file used as the sticker.
+ * @param {string} stickerId - Sticker String ID.
  * @return {void} This method does not return a value.
  */
-function addSticker(stickerPath) {
+function addSticker(stickerPath,stickerId) {
     const startingX = Math.random() * (canvas.width);
     const startingY = Math.random() * (canvas.height);
     const img = new Image();
@@ -277,7 +405,12 @@ function addSticker(stickerPath) {
         // World.add(engine.world, body);
         Composite.add(engine.world, body);
 
-        stickers.push({ img: img, body: body });
+        // stickers.push({ img: img, body: body });
+        stickers.push({
+            id: stickerId,
+            img: img,
+            body: body
+        });
 
         if (stickers.length > stickersLimit) {
             const oldSticker = stickers.shift();
@@ -288,6 +421,23 @@ function addSticker(stickerPath) {
         updateAllStickerBodiesSizes();
 
     };
+}
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+function removeSticker(stickerId) {
+    // Find the sticker index with matching ID
+    const index = stickers.findIndex(sticker => sticker.id === stickerId);
+    if (index !== -1) {
+        // Remove the body from the physics world
+        Composite.remove(engine.world, stickers[index].body);
+        // Remove the sticker from our array
+        stickers.splice(index, 1);
+        // Recalculate sizes for remaining stickers
+        calculateStickerSize();
+        updateAllStickerBodiesSizes();
+        if (enableDebug) console.log(`Removed sticker: ${stickerId}`);
+    }
 }
 // -----------------------------------------------------------------------------
 
@@ -316,80 +466,6 @@ function applyRandomGravity() {
 }
 // -----------------------------------------------------------------------------
 
-// #############################################################################
-// Websock
-// #############################################################################
-class WebSocketClient {
-    constructor() {
-        this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 99999;
-        this.reconnectDelay = 1000; // Start with 1 second
-        this.connect();
-    }
-
-    getWebSocketUrl() {
-        const hostname = window.location.hostname;
-        const port = window.location.port;
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-
-
-        if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
-            return 'ws://127.0.0.1:8000/ws';
-        }
-
-        // If there's a specific port, use it; otherwise don't include port in the URL
-        if (port) {
-            return `${protocol}//${hostname}:${port}/ws`;
-        } else {
-            return `${protocol}//${hostname}/ws`;
-        }
-    }
-
-    connect() {
-        this.ws = new WebSocket(this.getWebSocketUrl());
-
-        this.ws.onopen = () => {
-            if (enableDebug) console.log('WebSocket Connected');
-            this.reconnectAttempts = 0;
-            this.reconnectDelay = 1000;
-        };
-
-        this.ws.onclose = () => {
-            if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                if (enableDebug) console.log(`WebSocket Reconnecting... Attempt ${this.reconnectAttempts + 1}`);
-                setTimeout(() => this.connect(), this.reconnectDelay);
-                this.reconnectAttempts++;
-                this.reconnectDelay *= 2; // Exponential backoff
-            } else {
-                console.error('WebSocket Failed to connect after maximum attempts');
-            }
-        };
-
-        this.ws.onerror = (error) => {
-            console.error('WebSocket Error:', error);
-        };
-
-        // Add your message handler
-        this.ws.onmessage = (event) => {
-            const path = event.data;
-            if (enableDebug) console.log('New sticker:', path);
-            addSticker(path);
-        };
-    }
-
-    // // Method to send messages
-    // send(data) {
-    //     if (this.ws.readyState === WebSocket.OPEN) {
-    //         this.ws.send(data);
-    //     } else {
-    //         console.error('WebSocket is not connected');
-    //     }
-    // }
-
-    // wsClient.onmessage = (event) => {
-    // };
-
-}
 
 
 
