@@ -19,10 +19,11 @@ try:
     import sys
     import json
     import logging
+    import base64
+
+    from io import BytesIO
     from dotenv import load_dotenv
-
     from websockets.asyncio.client import connect
-
     from aiogram import Bot, Dispatcher, html, types, F
     from aiogram.client.default import DefaultBotProperties
     from aiogram.enums import ParseMode
@@ -49,6 +50,9 @@ else:
 # ######################################################################
 TELEGRAM_TOKEN:str = ""
 WEBSOCKET_SERVER_URI:str = ""
+WEBSOCKET_API_KEY:str = ""
+
+banned_users:dict = {}
 
 # Bot variables
 bot: Bot = None # Updated later
@@ -59,24 +63,16 @@ dp = Dispatcher()
 
 # ------------------------------------------------------------------------------
 # Connect to WebSocket server
-async def send_sticker_to_ws(sticker_path, telegram_user:str, telegram_userid:int):
-    # try:
-    #     async with connect(WEBSOCKET_SERVER_URI) as websocket:
-    #         await websocket.send(sticker_path)
-    # except Exception as e:
-    #     print(f"Error sending sticker to WebSocket server: {e}")
+async def send_sticker_to_ws(message_data):
     try:
-        async with connect(WEBSOCKET_SERVER_URI) as websocket:
-            message = {
-                "type": "sticker",
-                "bot_user": telegram_user,
-                "bot_name": telegram_userid,
-                "path": sticker_path
-            }
-            await websocket.send(json.dumps(message))
-
+        async with connect(
+                WEBSOCKET_SERVER_URI,
+                additional_headers={"x-api-key": WEBSOCKET_API_KEY}
+        ) as websocket:
+            await websocket.send(message_data)
     except Exception as e:
-        print(f"Error sending sticker to WebSocket server: {e}")
+        logger.error(f"Error sending sticker to WebSocket server: {e}")
+
 # ------------------------------------------------------------------------------
 
 
@@ -104,7 +100,11 @@ async def heartbeat(websocket, bot_info:aiogram.types.User):
 async def create_ws_connection():
     while True:
         try:
-            async with connect(WEBSOCKET_SERVER_URI) as websocket:
+            async with connect(
+                    WEBSOCKET_SERVER_URI,
+                    additional_headers={"x-api-key": WEBSOCKET_API_KEY}
+            ) as websocket:
+
                 bot_info = await bot.get_me()
                 bot_name = bot_info.username
                 # print(f"WebSocket connected, starting heartbeat for bot: {bot_name}")
@@ -149,31 +149,66 @@ async def command_start_handler(message: Message) -> None:
     # method automatically or call API method directly via
     # Bot instance: `bot.send_message(chat_id=message.chat.id, ...)`
     logger.info(f"Received command /start from {message.from_user.username}")
-    await message.answer(f"Hello, {html.bold(message.from_user.full_name)}!\nSend me your sticker and I will show in the digital wall.")
+    message_str: str = f"Hello, {html.bold(message.from_user.full_name)}!\n"
+    message_str += f"Send me your sticker and I will show in the digital wall.\n\n"
+    message_str += f"You can send up to 3 stickers at a time."
+
+    await message.answer(message_str, parse_mode=ParseMode.HTML)
 # ------------------------------------------------------------------------------
 
 
 # ------------------------------------------------------------------------------
 @dp.message(F.content_type.in_('sticker'))
 async def handle_sticker(message: types.Message):
+    # sticker: File = await bot.get_file(message.sticker.file_id)
+    # sticker_path = f"public/stickers/{message.sticker.file_id}.webp"
+    # sticker_url = f"stickers/{message.sticker.file_id}.webp"
+    #
+    # os.makedirs("public/stickers", exist_ok=True)
+    #
+    # file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{sticker.file_path}"
+    #
+    # async with aiohttp.ClientSession() as session:
+    #     async with session.get(file_url) as resp:
+    #         if resp.status == 200:
+    #             with open(sticker_path, 'wb') as f:
+    #                 f.write(await resp.read())
+    #
+    # print(f"Sticker saved at {sticker_path}")
+    #
+    # # Notify WebSocket clients
+    # await send_sticker_to_ws(sticker_url, message.from_user.username, message.from_user.id)
+    # Get user information
+    user_id = message.from_user.id
+    username = message.from_user.username or "No username"
+
+    # Get sticker file
     sticker: File = await bot.get_file(message.sticker.file_id)
-    sticker_path = f"public/stickers/{message.sticker.file_id}.webp"
-    sticker_url = f"stickers/{message.sticker.file_id}.webp"
-
-    os.makedirs("public/stickers", exist_ok=True)
-
     file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{sticker.file_path}"
 
+    # Download sticker and convert to base64
     async with aiohttp.ClientSession() as session:
         async with session.get(file_url) as resp:
             if resp.status == 200:
-                with open(sticker_path, 'wb') as f:
-                    f.write(await resp.read())
+                sticker_data = await resp.read()
+                # Convert to base64
+                base64_sticker = base64.b64encode(sticker_data).decode('utf-8')
 
-    print(f"Sticker saved at {sticker_path}")
+                # Create message with sticker data
+                sticker_message = {
+                    "type": "sticker",
+                    "bot_user": username,
+                    "bot_id": user_id,
+                    "sticker_id": message.sticker.file_id,
+                    "sticker_data": base64_sticker,
+                    "file_extension": "webp"  # Telegram stickers are always webp
+                }
 
-    # Notify WebSocket clients
-    await send_sticker_to_ws(sticker_url, message.from_user.username, message.from_user.id)
+                # Send to WebSocket server
+                await send_sticker_to_ws(json.dumps(sticker_message))
+                logger.info(f"Sticker sent to server from user: {username}")
+            else:
+                logger.error(f"Failed to download sticker: {resp.status}")
 
 
 # ------------------------------------------------------------------------------
@@ -212,14 +247,19 @@ if __name__ == "__main__":
     # Get the infos needed
     TELEGRAM_TOKEN = str(os.getenv("BOT_SERVER_TELEGRAM_BOT_TOKEN"))
     WEBSOCKET_SERVER_URI = str(os.getenv("BOT_SERVER_WEBSOCKET_SERVER_URI"))
+    WEBSOCKET_API_KEY = str(os.getenv("BOT_SERVER_WEBSOCKET_API_KEY"))
 
     # Sanity check
-    if TELEGRAM_TOKEN is None or WEBSOCKET_SERVER_URI is None:
-        print("BOT_SERVER_TELEGRAM_BOT_TOKEN/BOT_SERVER_WEBSOCKET_SERVER_URI NOT FOUND or DEFINED")
+    if not all([TELEGRAM_TOKEN, WEBSOCKET_SERVER_URI, WEBSOCKET_API_KEY]):
+        message_tmp = "Not found or defined: BOT_SERVER_TELEGRAM_BOT_TOKEN / BOT_SERVER_WEBSOCKET_SERVER_URI / BOT_SERVER_WEBSOCKET_API_KEY"
+        logger.error(message_tmp)
+        print(message_tmp)
         sys.exit(1)
 
-    if TELEGRAM_TOKEN == "" or WEBSOCKET_SERVER_URI == "":
-        print("BOT_SERVER_TELEGRAM_BOT_TOKEN/BOT_SERVER_WEBSOCKET_SERVER_URI is empty - please define it in .env file or set it as env variable")
+    if "" in [TELEGRAM_TOKEN, WEBSOCKET_SERVER_URI, WEBSOCKET_API_KEY]:
+        message_tmp = "Variables cannot be empty: BOT_SERVER_TELEGRAM_BOT_TOKEN / BOT_SERVER_WEBSOCKET_SERVER_URI / BOT_SERVER_WEBSOCKET_API_KEY"
+        logger.error(message_tmp)
+        print(message_tmp)
         sys.exit(1)
 
     # Init BOT

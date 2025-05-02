@@ -1,4 +1,6 @@
 .env
+*.env
+
 .venv
 *_NOSYNC
 *.NOSYNC
@@ -8,6 +10,12 @@ public/stickers/*
 public/stickers/*.*
 
 .idea/
+.run/
+
+server/database.db
+database.db
+
+
 
 
 # Byte-compiled / optimized / DLL files
@@ -140,7 +148,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+bot/.env
 .venv
 env/
 venv/
@@ -184,3 +192,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
