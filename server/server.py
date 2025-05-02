@@ -16,20 +16,34 @@ try:
     import uvicorn
     import json
     import base64
+    import secrets
     # import datetime as _datetime
     # from xmlrpc.client import boolean
 
     from contextlib import asynccontextmanager
-    from fastapi import FastAPI, WebSocket, HTTPException, Security
+
+    from fastapi import FastAPI, WebSocket, HTTPException, Security, Response
     from fastapi.security.api_key import APIKeyHeader
     from fastapi.staticfiles import StaticFiles
+    from fastapi.middleware.cors import CORSMiddleware
+
     from dotenv import load_dotenv, dotenv_values
+
     from starlette.websockets import WebSocketDisconnect
     from starlette.status import HTTP_403_FORBIDDEN
+
     from typing import List, Annotated, Optional, Dict
+
     from datetime import datetime, timezone, timedelta
+
     from sqlalchemy import Column, JSON, Index
     from sqlmodel import Field, Session, SQLModel, create_engine, select
+
+    from passlib.context import CryptContext
+
+    from pydantic import BaseModel
+
+
 
 
 except Exception as e:
@@ -69,20 +83,72 @@ api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
 
 BASE_PATH:str = os.getcwd() # Return a string representing the current working directory. Example: E:\\ or /VAR/DEV/
 
+# Global token storage
+active_tokens = {}
+
 # Websocket clients
 connected_telegram_clients = []
 connected_wall_clients = []
 
+# ------------------------------------------------------------------------------
 # SQLITE Stuff
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{os.path.join(BASE_PATH, sqlite_file_name)}" # The file should be saved on the same directory as the application
 connect_args = {"check_same_thread": False}
 engine = create_engine(sqlite_url, connect_args=connect_args, echo=False)
+# ------------------------------------------------------------------------------
 
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+# ------------------------------------------------------------------------------
 # Default user policy
 defaultUserStickerPolicy = {
-    "stickerCountMax" : 3
+    "stickerCountMax" : 3,
+    "policyType" : "",               # xxxxxxxxxxxxxxxxxx
+    "stickerPeriod" : 3600,
+    "stickerPeriodUnit" : "seconds"
 }
+wallSettingsDefault = {
+    "debugEnableBoxes": 1,                  # Enable lines around boxes
+    "debugEnableMessages": 1,               # Enable Debug messages
+
+    "botUsername": "",
+    "botFullName": "",
+
+    "stickerMaxCount": 150,                 # Maximum stickers to be displayed
+    "stickerSizeMax": 200,                  # Size in px
+    "stickerSizeMin": 100,                  # Size in px
+    "stickerResizeFactor": 0,               # Used to calculate the factor between Max/Min
+    "stickerRestitution": 0.5,              #
+    "stickerFrictionAir": 0.01,             #
+    "stickerFriction": 0.01,                #
+    "stickerInertia": 0,                    # 0 = Infinite
+    "stickerInverseInertia": 0,             #
+
+    "WorldGravityStartValueX": 0,           # Initial World Gravity value X
+    "WorldGravityStartValueY": 0,           # Initial World Gravity value Y
+    "WorldGravityShiftEnable": 1,           # 1 = Enables periodic Gravity Shift
+    "WorldGravityShiftTime": 30,            # For how long in seconds the gravity shall be applied
+    "WorldGravityStopTime": 10,             # When to stop the gravity shift
+    "WorldgravityShiftFactor": 0.001,       #
+    "stickerDriftForceEnable": 1,           # Enable Drift Force
+    "stickerDriftForce": 0.0005,            # Force factor
+    "stickerDriftForceInterval": 10,        # When to apply the force in seconds
+    "StickerlifeSpanMinutes": 0             # How long the sticker should stay
+}
+wallSettingsActual = wallSettingsDefault.copy()
+
+
+
+
+
+
+
+
+
+# ------------------------------------------------------------------------------
 # ######################################################################
 
 
@@ -94,9 +160,6 @@ async def lifespan(app: FastAPI):
     # Runs at startup
     global API_KEY
     global TELEGRAM_WEBSOCK_API_KEY
-
-    # Load the .env file (if exist)
-    load_dotenv()
 
     # ------------------------------------------------------------------------------
     # Configurations
@@ -142,6 +205,15 @@ app = FastAPI(
     # docs_url="/docs",
     # redoc_url="/redoc",
 )
+
+# Allow CORS (optional but useful for frontend access)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # ######################################################################
 
 
@@ -149,12 +221,6 @@ app = FastAPI(
 # ######################################################################
 # Database Models
 # ######################################################################
-# class Hero(SQLModel, table=True):
-#     id: int | None = Field(default=None, primary_key=True)
-#     name: str = Field(index=True)
-#     age: int | None = Field(default=None, index=True)
-#     secret_name: str
-
 # Uploaded stickers
 class StickerByUser(SQLModel, table=True):
     __tablename__ = "stickerbyuser"
@@ -173,8 +239,7 @@ class StickerByUser(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     enabled: bool = Field(default=True)
     options: dict | None = Field(default=None, sa_column=Column(JSON))  # For future customization
-
-
+# ------------------------------------------------------------------------------
 class StickerBan(SQLModel, table=True):
     __tablename__ = "stickerban"
     __table_args__ = (
@@ -186,7 +251,7 @@ class StickerBan(SQLModel, table=True):
     sticker_id: str | None = Field(default=None)
     reason: str | None = Field(default=None)
     banned_at: datetime = Field(default_factory=datetime.now)
-
+# ------------------------------------------------------------------------------
 class UserBan(SQLModel, table=True):
     __tablename__ = "userban"
     __table_args__ = (
@@ -200,27 +265,114 @@ class UserBan(SQLModel, table=True):
     telegram_id: int = Field(default=0)
     reason: str | None = Field(default=None)
     banned_at: datetime = Field(default_factory=datetime.now)
+# ------------------------------------------------------------------------------
+class User(SQLModel, table=True):
+    __tablename__ = "users"
+    __table_args__ = (
+        Index('ix_users_username', 'username', unique=True),
+        {'extend_existing': True}
+    )
 
+    id: int | None = Field(default=None, primary_key=True)
+    username: str = Field(unique=True, index=True)
+    hashed_password: str
+    is_admin: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.now)
 # ######################################################################
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
 
 
 # ######################################################################
 # Functions / Modules
 # ######################################################################
+# ------------------------------------------------------------------------------
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine, checkfirst=True)
-
+# ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 def get_session():
     with Session(engine) as session:
         yield session
 # ------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+def create_access_token() -> str:
+    return secrets.token_urlsafe(32)
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+def create_initial_admin(session: Session, admin_password: str) -> None:
+    if not admin_password:
+        logger.warning("No INITIAL_ADMIN_PASSWORD set, skipping admin creation")
+        sys.exit(1)
+
+    # Check if admin user exists
+    admin = session.exec(select(User).where(User.username == "admin")).first()
+    if not admin:
+        admin = User(
+            username="admin",
+            hashed_password=get_password_hash(admin_password),
+            is_admin=True
+        )
+        session.add(admin)
+        session.commit()
+        logger.info("Created initial admin user")
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+def verify_token(token: str) -> bool:
+    if token not in active_tokens:
+        return False
+
+    token_data = active_tokens[token]
+    if datetime.now() > token_data["expires"]:
+        del active_tokens[token]
+        return False
+
+    return True
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+def check_auth(apikey: str = Security(api_key_header)) -> bool:
+    if not apikey:
+        raise HTTPException(
+            status_code=HTTP_403_FORBIDDEN, detail="No API key provided"
+        )
+    if apikey == API_KEY or verify_token(apikey):
+        return True
+    raise HTTPException(
+        status_code=HTTP_403_FORBIDDEN, detail="Invalid API key"
+    )
+# ------------------------------------------------------------------------------
 
 
 
+
+# ------------------------------------------------------------------------------
+async def ws_broadcast_to_wall_clients(message: dict):
+    for client in connected_wall_clients:
+        await client.send_text(json.dumps(message))
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+async def ws_broadcast_to_telegram_clients(message: dict):
+    for client in connected_telegram_clients:
+        await client.send_text(json.dumps(message))
+# ------------------------------------------------------------------------------
 
 
 # Yes... the code may be a mess... but you can't start perfect when you start from scratch something :)
@@ -317,9 +469,10 @@ async def websocket_telegram_endpoint(websocket: WebSocket):
                             }
                             # Broadcast to Bot servers - yup, the only way to work
                             # TODO: Fix this to return to the only connected client (not an issue because it is only 1 bot connected usually)
-                            for client in connected_telegram_clients:
-                                await client.send_text(json.dumps(error_message))
-                            continue
+                            await ws_broadcast_to_telegram_clients(error_message)
+                            # for client in connected_telegram_clients:
+                            #     await client.send_text(json.dumps(error_message))
+                            # continue
 
                     # Get the base64 data and save it
                     sticker_data = base64.b64decode(message["sticker_data"])
@@ -358,8 +511,9 @@ async def websocket_telegram_endpoint(websocket: WebSocket):
                     }
 
                     # Broadcast to wall clients
-                    for client in connected_wall_clients:
-                        await client.send_text(json.dumps(client_message))
+                    await ws_broadcast_to_wall_clients(client_message)
+                    # for client in connected_wall_clients:
+                    #     await client.send_text(json.dumps(client_message))
 
                     logging.info(f"Sticker saved and broadcast: {file_name}")
                     continue
@@ -412,6 +566,37 @@ async def websocket_wall_endpoint(websocket: WebSocket):
 
 
 
+# ------------------------------------------------------------------------------
+@app.get("/api/wall/config")
+async def get_wall_config(apikey: str = Security(api_key_header)) -> Response:
+
+    # if not apikey:
+    #     raise HTTPException(
+    #         status_code=HTTP_403_FORBIDDEN, detail="Could not validate API key"
+    #     )
+    # if apikey != API_KEY:
+    #     raise HTTPException(
+    #         status_code=HTTP_403_FORBIDDEN, detail="Nope... Could not validate API key"
+    #     )
+
+    return Response(content=json.dumps(wallSettingsActual), media_type="application/json")
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# @app.post("/api/wall/config")
+# async def post_wall_config(apikey: str = Security(api_key_header), item: Body):
+#
+#     # if not apikey:
+#     #     raise HTTPException(
+#     #         status_code=HTTP_403_FORBIDDEN, detail="Could not validate API key"
+#     #     )
+#     # if apikey != API_KEY:
+#     #     raise HTTPException(
+#     #         status_code=HTTP_403_FORBIDDEN, detail="Nope... Could not validate API key"
+#     #     )
+#
+#     return Response(content=json.dumps(wallSettingsActual), media_type="application/json")
+
 
 # ------------------------------------------------------------------------------
 @app.get("/api/stickers", response_model=List[str])
@@ -419,24 +604,24 @@ async def list_stickers(apikey: str = Security(api_key_header)):
 
     # print(f"API_KEY expected/received: {API_KEY}/{apikey}")
 
-    if not apikey:
-        raise HTTPException(
-            status_code=HTTP_403_FORBIDDEN, detail="Could not validate API key"
-        )
-    if apikey != API_KEY:
-        raise HTTPException(
-            status_code=HTTP_403_FORBIDDEN, detail="Nope... Could not validate API key"
-        )
+    # if not apikey:
+    #     raise HTTPException(
+    #         status_code=HTTP_403_FORBIDDEN, detail="Could not validate API key"
+    #     )
+    # if apikey != API_KEY:
+    #     raise HTTPException(
+    #         status_code=HTTP_403_FORBIDDEN, detail="Nope... Could not validate API key"
+    #     )
 
     try:
         # Get list of .webp files from stickers directory
         sticker_files = [f for f in os.listdir("static/stickers") if f.endswith('.webp')]
 
         # Broadcast the entire list to all connected clients
-        for client in connected_wall_clients:
-            for sticker in sticker_files:
-                sticker_path = f"stickers/{sticker}"
-                await client.send_text(sticker_path)
+        # for client in connected_wall_clients:
+        #     for sticker in sticker_files:
+        #         sticker_path = f"stickers/{sticker}"
+        #         await client.send_text(sticker_path)
 
         # Return the list of sticker paths
         return [f"stickers/{sticker}" for sticker in sticker_files]
@@ -449,6 +634,7 @@ async def list_stickers(apikey: str = Security(api_key_header)):
 
 
 
+# ------------------------------------------------------------------------------
 @app.post("/api/ban/user")
 async def ban_user(
         telegram_id: str,
@@ -467,6 +653,7 @@ async def ban_user(
         session.commit()
         return {"status": "success", "message": f"User {telegram_id} banned"}
 
+# ------------------------------------------------------------------------------
 @app.post("/api/ban/sticker")
 async def ban_sticker(
         sticker_id: str,
@@ -490,6 +677,37 @@ async def ban_sticker(
 
 
 
+# ------------------------------------------------------------------------------
+@app.post("/api/auth/login")
+async def login(request: LoginRequest):
+    with Session(engine) as session:
+        user = session.exec(
+            select(User).where(User.username == request.username)
+        ).first()
+
+        if not user or not verify_password(request.password, user.hashed_password):
+            raise HTTPException(
+                status_code=401,
+                detail="Incorrect username or password"
+            )
+
+        # Generate token
+        token = create_access_token()
+        active_tokens[token] = {
+            "user_id": user.id,
+            "expires": datetime.now() + timedelta(hours=24)
+        }
+
+        return {"access_token": token, "token_type": "bearer"}
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+@app.post("/api/auth/logout")
+async def logout(apikey: str = Security(api_key_header)):
+    if apikey in active_tokens:
+        del active_tokens[apikey]
+    return {"message": "Successfully logged out"}
+# ------------------------------------------------------------------------------
 
 
 
@@ -514,6 +732,9 @@ async def ban_sticker(
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 # ------------------------------------------------------------------------------
 
+# Load the .env file (if exist)
+load_dotenv()
+
 
 if __name__ == "__main__":
     # if not API_KEY or API_KEY == "":
@@ -522,8 +743,11 @@ if __name__ == "__main__":
     # logger.info(f"API_KEY: {API_KEY}")
 
     create_db_and_tables()
+    with Session(engine) as session:
+        create_initial_admin(session, os.getenv("INITIAL_ADMIN_PASSWORD"))
 
-    # uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+
+# uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
     if LOGGING_LEVEL == logging.DEBUG:
         uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=True, log_level="debug", proxy_headers=True)
     elif LOGGING_LEVEL == logging.INFO:

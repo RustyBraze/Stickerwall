@@ -1,0 +1,157 @@
+<!doctype html>
+<!--
+* Tabler - Premium and Open Source dashboard template with responsive and high quality UI.
+* @version 1.0.0
+* @link https://tabler.io
+* Copyright 2018-2025 The Tabler Authors
+* Copyright 2018-2025 codecalm.net Paweł Kuna
+* Licensed under MIT (https://github.com/tabler/tabler/blob/master/LICENSE)
+-->
+<html lang="en">
+
+<head>
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+	<meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+
+	<title>Admin Panel - Sticker wall</title>
+
+	<!-- CSS files -->
+	<link href="css/tabler.min.css?1738096682" rel="stylesheet"/>
+
+	<style>
+		@import url('https://rsms.me/inter/inter.css');
+		.error-message {
+			color: #dc3545;
+			margin-top: 0.5rem;
+			display: none;
+		}
+	</style>
+</head>
+
+<body class=" d-flex flex-column">
+
+<div class="page">
+
+	<div class="container container-tight py-4">
+
+		<div class="card card-md">
+
+			<div class="card-body">
+
+				<h2 class="h2 text-center mb-4">Login</h2>
+
+				<div id="loginForm">
+
+					<div class="mb-3">
+						<label class="form-label">Username</label>
+						<input type="text" id="username" class="form-control" placeholder="Your username" autocomplete="off">
+					</div>
+
+					<div class="mb-2">
+						<label class="form-label">Password</label>
+						<div class="input-group input-group-flat">
+							<input type="password" id="password" class="form-control" placeholder="Your password" autocomplete="off">
+
+							<span class="input-group-text">
+								<a href="#" class="link-secondary" id="togglePassword" title="Show password" data-bs-toggle="tooltip">
+									<!-- Download SVG icon from http://tabler.io/icons/icon/eye -->
+									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1"><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg>
+								</a>
+							</span>
+						</div>
+					</div>
+
+					<div id="errorMessage" class="error-message"></div>
+
+					<div class="form-footer">
+						<button type="submit" id="loginButton" class="btn btn-primary w-100">Login</button>
+					</div>
+
+				</div>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</div>
+
+<!-- Libs JS -->
+
+
+<!-- Tabler Core -->
+<script src="js/tabler.min.js?1738096682" defer></script>
+
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		const loginButton = document.getElementById('loginButton');
+		const errorMessage = document.getElementById('errorMessage');
+		const togglePassword = document.getElementById('togglePassword');
+		const passwordInput = document.getElementById('password');
+
+		// Toggle password visibility
+		togglePassword.addEventListener('click', function(e) {
+			e.preventDefault();
+			const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+			passwordInput.setAttribute('type', type);
+		});
+
+		// Handle login
+		loginButton.addEventListener('click', handleLogin);
+
+		// Also handle Enter key
+		document.getElementById('password').addEventListener('keypress', function(e) {
+			if (e.key === 'Enter') {
+				handleLogin();
+			}
+		});
+
+		function handleLogin() {
+			const username = document.getElementById('username').value;
+			const password = document.getElementById('password').value;
+
+			// Disable button and show loading state
+			loginButton.disabled = true;
+			loginButton.innerHTML = 'Logging in...';
+			errorMessage.style.display = 'none';
+
+			fetch('http://127.0.0.1:8000/api/auth/login', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					username: username,
+					password: password
+				})
+			})
+					.then(response => {
+						if (!response.ok) {
+							throw new Error('Invalid username or password');
+						}
+						return response.json();
+					})
+					.then(data => {
+						// Store the token
+						localStorage.setItem('auth_token', data.access_token);
+						// Redirect to admin page
+						window.location.href = 'admin.html';
+					})
+					.catch(error => {
+						// Show error message
+						errorMessage.textContent = error.message;
+						errorMessage.style.display = 'block';
+
+						// Reset button state
+						loginButton.disabled = false;
+						loginButton.innerHTML = 'Login';
+					});
+		}
+	});
+</script>
+
+
+</body>
+</html>
