@@ -43,9 +43,6 @@ try:
 
     from pydantic import BaseModel
 
-
-
-
 except Exception as e:
     print(f"Error importing modules: {e}")
     sys.exit(1)

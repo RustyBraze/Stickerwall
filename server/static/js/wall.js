@@ -1,31 +1,204 @@
 // #############################################################################
-// Basic Parameters
+// Global Configuration
+// #############################################################################
+let config = {
+    debugEnableBoxes: true,
+    debugEnableMessages: true,
+
+    debug:{
+        enable: false,
+        showWalls: false,
+        showWorld: false,
+        showStickers: false,
+        showStickerSize: false,
+        // showPhysics: false,
+        // showSticker: false,
+        // showStickerVelocity: false,
+        // showStickerPosition: false,
+    },
+
+    botUsername: "",
+    botFullName: "",
+
+    bot: {
+        username: "",
+        fullName: "",
+        avatar: "",
+        avatarUrl: "",
+        avatarUrlSmall: "",
+        avatarUrlMedium: "",
+        avatarUrlLarge: "",
+        avatarUrlOriginal: "",
+        avatarUrlGif: "",
+        avatarUrlGifSmall: "",
+    },
+
+    stickerMaxCount: 150,
+    stickerSizeMax: 200,
+    stickerSizeMin: 100,
+    stickerHitBoxFactor: 0.7,
+
+    // stickerRestitution: 0.5,
+    stickerRestitution: 0.1,
+    // stickerFrictionAir: 0.01,
+    // stickerFriction: 0.01,
+    stickerFrictionAir: 0,
+    stickerFriction: 0,
+    stickerInertia: 0,
+    stickerInverseInertia: 0,
+    stickerInitialSpeed: 0.1,
+
+    wallForceRestitution: 0,
+    wallColisionEffectEnable: false,
+
+    WorldGravityStartValueX: 0,
+    WorldGravityStartValueY: 0,
+
+    WorldGravityShiftEnable: false,
+    WorldGravityShiftTime: 30,
+    WorldGravityStopTime: 10,
+    WorldgravityShiftFactor: 0.001,
+
+    stickerDriftForceEnable: false,
+    stickerDriftForce: 0.0005,
+    stickerDriftForceInterval: 10,
+    StickerlifeSpanMinutes: 0
+};
 // #############################################################################
 
-let enableBoxes = true; // Enable this to see the borders and limits
-const enableDebug = true; // Enable this to see internal messages
+// #############################################################################
+// Debug utility
+// #############################################################################
+const Debug = {
+    // Levels of debugging
+    LEVELS: {
+        ERROR: 'error',
+        WARN: 'warn',
+        INFO: 'info',
+        DEBUG: 'debug'
+    },
 
-const stickersLimit = 150;
-let stickers = []; // holds all stickers
-const StickerSizeMax = 200; //Maximum size of the sticker
-const StickerSizeMin = 100; //Minimum size of the sticker
-let StickerSize = StickerSizeMax; //Actual size of the stickers
+    // Configuration object
+    config: {
+        enabled: true,          // Master switch
+        level: 'debug',        // Current level
+        prefix: '',          // Prefix for messages
+        // Add specific features flags
+        features: {
+            messages: true,     // General messages
+            network: true,      // Network operations
+            physics: true,      // Physics engine related
+            stickers: true,     // Sticker operations
+            storage: true       // Storage operations
+        }
+    },
 
-//websocket connection is near the end of the file
-// const wsClient = new WebSocket('ws://127.0.0.1:8000/ws');
+    // Main logging function
+    log(feature, level, ...args) {
+        // Check if debugging is enabled and the feature is enabled
+        if (!this.config.enabled || !this.config.features[feature.toLowerCase()]) {
+            return;
+        }
+
+        const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+        const prefix = `${this.config.prefix} [${timestamp}] [${feature.toUpperCase()}]`;
+
+        switch (level) {
+            case this.LEVELS.ERROR:
+                console.error(prefix, ...args);
+                break;
+            case this.LEVELS.WARN:
+                console.warn(prefix, ...args);
+                break;
+            case this.LEVELS.INFO:
+                console.info(prefix, ...args);
+                break;
+            case this.LEVELS.DEBUG:
+                console.debug(prefix, ...args);
+                break;
+            default:
+                console.log(prefix, ...args);
+        }
+    },
+
+    // Convenience methods
+    error(feature, ...args) {
+        this.log(feature, this.LEVELS.ERROR, ...args);
+    },
+
+    warn(feature, ...args) {
+        this.log(feature, this.LEVELS.WARN, ...args);
+    },
+
+    info(feature, ...args) {
+        this.log(feature, this.LEVELS.INFO, ...args);
+    },
+
+    debug(feature, ...args) {
+        this.log(feature, this.LEVELS.DEBUG, ...args);
+    }
+};
+// #############################################################################
+
+
 
 
 // We need to use CANVAS and render ourselves the objects with the help from Matter.js
 const canvas = document.getElementById('stickerCanvas');
 const canvas_context = canvas.getContext('2d');
-// const canvas = document.getElementById('stickerDIV'); //debug reasons
 
-// Flag for the update - in case of screen resize
-let wallsCreated = false;
+// Sticker holders
+let stickers = []; // holds all stickers
+let StickerSize = config.stickerMaxCount; //Actual size of the stickers
+
+// World Walls
+let worldWallsCreatedFlag = false;
+let worldWalls = [];
 
 
 
 
+
+
+
+
+const StorageManager = {
+    STORAGE_KEY: 'wall_stickers',
+
+    // Save sticker to localStorage
+    saveSticker(sticker) {
+        let stickersData = this.getAllStickers();
+        stickersData.push({
+            id: sticker.id,
+            path: sticker.img.src,
+            position: sticker.body.position,
+            angle: sticker.body.angle,
+            velocity: sticker.body.velocity
+        });
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(stickersData));
+        Debug.debug('storage', 'Saved sticker:', sticker.id);
+    },
+
+    // Remove sticker from localStorage
+    removeSticker(stickerId) {
+        let stickersData = this.getAllStickers();
+        stickersData = stickersData.filter(s => s.id !== stickerId);
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(stickersData));
+        Debug.debug('storage', 'Removed sticker:', stickerId);
+    },
+
+    // Get all stored stickers
+    getAllStickers() {
+        const data = localStorage.getItem(this.STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+    },
+
+    // Clear all stickers from storage
+    clearStickers() {
+        localStorage.removeItem(this.STORAGE_KEY);
+        Debug.info('storage', 'Cleared all stickers from storage');
+    }
+};
 
 
 
@@ -62,24 +235,24 @@ class WebSocketClient {
         this.ws = new WebSocket(this.getWebSocketUrl());
 
         this.ws.onopen = () => {
-            if (enableDebug) console.log('WebSocket Connected');
+            Debug.info('network', 'WebSocket Connected');
             this.reconnectAttempts = 0;
             this.reconnectDelay = 1000;
         };
 
         this.ws.onclose = () => {
             if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                if (enableDebug) console.log(`WebSocket Reconnecting... Attempt ${this.reconnectAttempts + 1}`);
+                Debug.warn('network', `WebSocket Reconnecting... Attempt ${this.reconnectAttempts + 1}`);
                 setTimeout(() => this.connect(), this.reconnectDelay);
                 this.reconnectAttempts++;
                 this.reconnectDelay *= 2; // Exponential backoff
             } else {
-                console.error('WebSocket Failed to connect after maximum attempts');
+                Debug.error('network','WebSocket Failed to connect after maximum attempts');
             }
         };
 
         this.ws.onerror = (error) => {
-            console.error('WebSocket Error:', error);
+            Debug.error('network','WebSocket Error:', error);
         };
 
         // Add your message handler
@@ -92,25 +265,28 @@ class WebSocketClient {
         this.ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (enableDebug) console.log('Received message:', data);
+                Debug.debug('network','Received message:', data);
 
                 if (data.type === 'sticker') {
                     switch (data.action) {
                         case 'new':
-                            if (enableDebug) console.log('Adding new sticker:', data.path);
+                            Debug.debug('network','Adding new sticker:', data.path);
                             addSticker(data.path, data.sticker_id);
                             break;
+
                         case 'remove':
-                            if (enableDebug) console.log('Removing sticker:', data.sticker_id);
+                            Debug.debug('network','Removing sticker:', data.sticker_id);
                             removeSticker(data.sticker_id);
                             break;
+
                         default:
                             console.warn('Unknown sticker action:', data.action);
                     }
                 }
+
             } catch (error) {
                 // Handle legacy string messages (backward compatibility)
-                if (enableDebug) console.log('Received legacy message:', event.data);
+                Debug.debug('network','Received legacy message:', event.data);
                 addSticker(event.data);
             }
         };
@@ -172,14 +348,16 @@ const engine = Engine.create();
 // Functions
 // #############################################################################
 
+
 // -----------------------------------------------------------------------------
-// Set/Resize canvas
+// Canvas Size
+// -----------------------------------------------------------------------------
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    if (enableDebug) console.log("Canvas Size set: ", canvas.width, canvas.height);
+    Debug.debug('messages', 'Canvas Size set:', canvas.width, canvas.height);
 
-    if (wallsCreated) {
+    if (worldWallsCreatedFlag) {
         createWalls();
     }
 }
@@ -190,40 +368,59 @@ resizeCanvas();
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
-// Create the bounds for our world
-/**
- * Creates the boundary walls and a center block in the simulation environment.
- * If walls have already been created, this method removes them first and then recreates them.
- *
- * @return {void} No return value. This method performs actions on the simulation environment.
- */
-function createWalls() {
-    const groundBottom = Bodies.rectangle(canvas.width / 2, canvas.height, canvas.width, 50, { label:"groundBottom", isStatic: true, restitution: 1 });
-    const groundtop = Bodies.rectangle(canvas.width / 2, 0, canvas.width, 50, { label: "groundtop", isStatic: true, restitution: 1 });
-    const groundRight = Bodies.rectangle(canvas.width, canvas.height / 2, 50, canvas.height, { label: "groundRight", isStatic: true, restitution: 1 });
-    const groundLeft = Bodies.rectangle(0, canvas.height / 2, 50, canvas.height, { label: "groundLeft", isStatic: true, restitution: 1 });
-    const centerBlock = Bodies.rectangle(canvas.width / 2, canvas.height / 2, canvas.width / 4, 50, { label: "centerBlock", isStatic: true, restitution: 1 });
+const RotationManager = {
+    lastValue: null,
 
-    if (wallsCreated) {
-        if (enableDebug) console.log("Removing walls - to recreate them");
-        Composite.remove(engine.world, [
-            groundBottom,
-            groundtop,
-            groundRight,
-            groundLeft,
-            centerBlock
-        ]);
+    getRandomRotation() {
+        // Generate a value between 0 and 0.1
+        let value = (Math.random() * 0.1).toFixed(3);
+
+        // If this is the first call or last value was negative, make it positive
+        if (this.lastValue === null || this.lastValue < 0) {
+            value = Math.abs(value);
+        } else {
+            // If last value was positive, make this one negative
+            value = -Math.abs(value);
+        }
+
+        // Store this value for next call
+        this.lastValue = parseFloat(value);
+
+        Debug.debug('physics', "Random rotation value:", this.lastValue);
+        return this.lastValue;
+    }
+};
+// -----------------------------------------------------------------------------
+
+
+
+// -----------------------------------------------------------------------------
+// World Walls
+// -----------------------------------------------------------------------------
+function createWalls() {
+
+    if (worldWallsCreatedFlag) {
+        Composite.remove(engine.world, worldWalls);
+        worldWalls = [];
     }
 
-    Composite.add(engine.world, [
-        groundBottom,
-        groundtop,
-        groundRight,
-        groundLeft,
-        centerBlock
-    ]);
-    wallsCreated = true;
-    if (enableDebug) console.log("Walls created");
+    const WallGroundBottom = Bodies.rectangle(canvas.width / 2, canvas.height, canvas.width, 50, { label:"groundBottom", isStatic: true, restitution: config.wallForceRestitution });
+    const WallGroundtop = Bodies.rectangle(canvas.width / 2, 0, canvas.width, 50, { label: "groundtop", isStatic: true, restitution: config.wallForceRestitution });
+    const WallGroundRight = Bodies.rectangle(canvas.width, canvas.height / 2, 50, canvas.height, { label: "groundRight", isStatic: true, restitution: config.wallForceRestitution });
+    const WallGroundLeft = Bodies.rectangle(0, canvas.height / 2, 50, canvas.height, { label: "groundLeft", isStatic: true, restitution: config.wallForceRestitution });
+    const WallCenterBlock = Bodies.rectangle(canvas.width / 2, canvas.height / 2, canvas.width / 4, 50, { label: "centerBlock", isStatic: true, restitution: config.wallForceRestitution });
+
+    worldWalls.push(WallGroundBottom);
+    worldWalls.push(WallGroundtop);
+    worldWalls.push(WallGroundRight);
+    worldWalls.push(WallGroundLeft);
+    worldWalls.push(WallCenterBlock);
+
+    Composite.add(engine.world, worldWalls);
+
+    worldWallsCreatedFlag = true;
+
+    Debug.debug('messages', "Walls created");
 }
 createWalls();
 // -----------------------------------------------------------------------------
@@ -238,10 +435,18 @@ createWalls();
 function getRandomVelocity() {
     const precision = 1000; // Adjust for more or fewer decimal places
     const value = Math.floor(Math.random() * (precision * 2 + 1) - precision) / precision;
-    if (enableDebug) console.log("Random value: ", value);
+    // Debug.debug('physics', "Random value: ", value);
     return value;
 }
 // -----------------------------------------------------------------------------
+
+// function getRandomRotation() {
+//     // const precision = 100; // Adjust for more or fewer decimal places
+//     // const value = Math.floor(Math.random() * (precision * 2 + 1) - precision) / precision;
+//     // Debug.debug('physics', "Random value: ", value);
+//     // return value;
+//     return parseFloat(((Math.random() * 0.1) - 0.1).toFixed(3));
+// }
 
 // ------------------------------------------------------------------------------------
 /**
@@ -296,11 +501,11 @@ function calculateProportionalSize(originalWidth, originalHeight, maxSize) {
  */
 function calculateStickerSize() {
     // Get percentage of stickers compared to limit
-    const stickerPercentage = Math.min(stickers.length / stickersLimit, 1);
+    const stickerPercentage = Math.min(stickers.length / config.stickerMaxCount, 1);
 
     // Calculate size using linear interpolation between max and min
-    StickerSize = Math.round(StickerSizeMax - (stickerPercentage * (StickerSizeMax - StickerSizeMin))) ;
-    if (enableDebug) console.log("Sticker percentage: ", stickerPercentage, " Sticker size: ", StickerSize);
+    StickerSize = Math.round(config.stickerSizeMax - (stickerPercentage * (config.stickerSizeMax - config.stickerSizeMin))) ;
+    Debug.debug('stickers', "Sticker percentage: ", stickerPercentage, " Sticker size: ", StickerSize);
 }
 // -----------------------------------------------------------------------------
 
@@ -320,7 +525,7 @@ function updateAllStickerBodiesSizes() {
         if (index >= bodies.length) return;
 
         // Calculate new proportional size for the sticker
-        const corrected_size = calculateProportionalSize(sticker.img.width, sticker.img.height, StickerSize);
+        const corrected_size = calculateProportionalSize(sticker.img.width, sticker.img.height, (StickerSize * config.stickerHitBoxFactor));
 
         // Store current position and velocity
         const position = { ...sticker.body.position };
@@ -337,11 +542,11 @@ function updateAllStickerBodiesSizes() {
             corrected_size.width,
             corrected_size.height,
             {
-                restitution: 0.5,
-                frictionAir: 0.01,
-                friction: 0.01,
-                inertia: Infinity,
-                inverseInertia: 0
+                restitution: config.stickerRestitution,            // Perfect bounce
+                frictionAir: config.stickerFrictionAir,            // No air friction
+                friction: config.stickerFriction,                  // No surface friction
+                inertia: Infinity,                                 // Prevent rotation
+                inverseInertia: config.stickerInverseInertia       // Prevent rotation
             }
         );
 
@@ -380,47 +585,63 @@ function addSticker(stickerPath,stickerId) {
         const x = startingX;
         const y = startingY;
 
-        const corrected_size = calculateProportionalSize(img.width, img.height, StickerSize);
+        const corrected_size = calculateProportionalSize(img.width, img.height, (StickerSize * config.stickerHitBoxFactor));
 
-        // const body = Bodies.circle(x, y, StickerSize / 2, {
         const body = Bodies.rectangle(x, y, corrected_size.width, corrected_size.height, {
-                restitution: 0.5, // Perfect bounce
-                frictionAir: 0.05, // No air friction
-                friction: 0.1, // No surface friction
-                inertia: Infinity, // Prevent rotation
-                inverseInertia: 0 // Prevent rotation
+                restitution: config.stickerRestitution,            // Perfect bounce
+                frictionAir: config.stickerFrictionAir,            // No air friction
+                friction: config.stickerFriction,                  // No surface friction
+                inertia: Infinity,                                 // Prevent rotation
+                inverseInertia: config.stickerInverseInertia       // Prevent rotation
             }
         );
 
         // Set initial velocity
-        const speed = 2; // Consistent initial speed
+        const speed = config.stickerInitialSpeed; // Consistent initial speed
         const randomAngle = Math.random() * Math.PI * 2;
         Matter.Body.setVelocity(body, {
             x: Math.cos(randomAngle) * speed,
             y: Math.sin(randomAngle) * speed
         });
 
-        if (enableDebug) console.log("Created sticker at: ", x, y, " with angle: ", randomAngle, " and speed: ", speed, "");
+        // Matter.Body.rotate(body, (Math.random() * 0.5) - 0.2);
+        Matter.Body.setAngle(body, RotationManager.getRandomRotation());
+        // Matter.Body.setAngle(body, 0.2);
+
+        Debug.debug("messages","Created sticker at: ", x, y, " with angle: ", randomAngle, " and speed: ", speed, "");
 
         // World.add(engine.world, body);
         Composite.add(engine.world, body);
 
-        // stickers.push({ img: img, body: body });
-        stickers.push({
+        const stickerObj = {
             id: stickerId,
             img: img,
             body: body
-        });
+        };
 
-        if (stickers.length > stickersLimit) {
+        stickers.push(stickerObj);
+        StorageManager.saveSticker(stickerObj);
+
+        // // stickers.push({ img: img, body: body });
+        // stickers.push({
+        //     id: stickerId,
+        //     img: img,
+        //     body: body
+        // });
+
+        // localStorage.setItem('stickers', JSON.stringify({
+        //     body: body
+        // }));
+
+        if (stickers.length > config.stickerMaxCount) {
             const oldSticker = stickers.shift();
             Composite.remove(engine.world, oldSticker.body);
+            StorageManager.removeSticker(oldSticker.id);
         }
-        calculateStickerSize();
-        // Update all sizes
-        updateAllStickerBodiesSizes();
-
     };
+    calculateStickerSize();
+    // Update all sizes
+    updateAllStickerBodiesSizes();
 }
 // -----------------------------------------------------------------------------
 
@@ -433,11 +654,39 @@ function removeSticker(stickerId) {
         Composite.remove(engine.world, stickers[index].body);
         // Remove the sticker from our array
         stickers.splice(index, 1);
+        // Remove from storage
+        StorageManager.removeSticker(stickerId);
         // Recalculate sizes for remaining stickers
         calculateStickerSize();
         updateAllStickerBodiesSizes();
-        if (enableDebug) console.log(`Removed sticker: ${stickerId}`);
+        Debug.debug('stickers',`Removed sticker: ${stickerId}`);
     }
+}
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+function restoreStickers() {
+    const storedStickers = StorageManager.getAllStickers();
+    Debug.info('storage', `Restoring ${storedStickers.length} stickers`);
+
+    // Clear existing stickers first
+    removeAllStickers();
+
+    // Restore stickers
+    storedStickers.forEach(storedSticker => {
+        addSticker(storedSticker.path, storedSticker.id);
+    });
+}
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+function removeAllStickers() {
+    Composite.allBodies(engine.world).forEach(body => {
+        if (body.isStatic) return;
+        Composite.remove(engine.world, body);
+    });
+    stickers = [];
+    StorageManager.clearStickers();
 }
 // -----------------------------------------------------------------------------
 
@@ -449,17 +698,20 @@ function getRandomGravity() {
 
 // Function to reset gravity to zero
 function resetGravity() {
-    engine.world.gravity.x = 0;
-    engine.world.gravity.y = 0;
-    if (enableDebug) console.log("Gravity removed");
+    engine.world.gravity.x = config.WorldGravityStartValueX;
+    engine.world.gravity.y = config.WorldGravityStartValueY;
+
+    Debug.debug('physics', "Gravity back to default");
 }
 
 // Function to apply random gravity
 function applyRandomGravity() {
-    if (enableDebug) console.log("Applying random gravity");
+    Debug.debug('physics', "Applying random gravity");
 
-    engine.world.gravity.x = getRandomGravity();
-    engine.world.gravity.y = getRandomGravity();
+    const gravity = getRandomGravity();
+
+    engine.world.gravity.x = gravity;
+    engine.world.gravity.y = gravity * -1;
 
     // Reset gravity after a few seconds
     setTimeout(resetGravity, 10000);
@@ -521,19 +773,27 @@ function applyRandomGravity() {
     canvas_context.clearRect(0, 0, canvas.width, canvas.height);
 
     for (const sticker of stickers) {
-        const { position, angle } = sticker.body;
+        const { position, angle} = sticker.body;
+        // const { position, angle, bounds} = sticker.body;
+        // const width = bounds.max.x - bounds.min.x;
+        // const height = bounds.max.y - bounds.min.y;
+
         canvas_context.save();
         canvas_context.translate(position.x, position.y);
         canvas_context.rotate(angle);
         // drawImage(image, dx, dy, dWidth, dHeight)
         // canvas_context.drawImage(sticker.img, -stickerSize/2, -stickerSize/2, stickerSize, stickerSize);
-        const corrected_size = calculateProportionalSize(sticker.img.width, sticker.img.height, StickerSize);
         // canvas_context.drawImage(sticker.img, -StickerSize/2, -StickerSize/2, corrected_size.width, corrected_size.height);
-        canvas_context.drawImage(sticker.img, -corrected_size.width/2, -corrected_size.height/2, corrected_size.width, corrected_size.height);
+        const corrected_size = calculateProportionalSize(sticker.img.width, sticker.img.height, StickerSize);
+        canvas_context.drawImage(sticker.img, -corrected_size.width / 2, -corrected_size.height / 2, corrected_size.width, corrected_size.height);
+        // canvas_context.drawImage(sticker.img, -width / 2, -height / 2, width, height);
+        // canvas_context.drawImage(sticker.img, -width / 2, -height / 2, corrected_size.width, corrected_size.height);
+        // canvas_context.drawImage(sticker.img, -corrected_size.width / (2 * config.stickerHitBoxFactor), -corrected_size.height / (2 * config.stickerHitBoxFactor), corrected_size.width, corrected_size.height);
+        // canvas_context.drawImage(sticker.img, (-width/2 * config.stickerHitBoxFactor), (-height/2 * config.stickerHitBoxFactor), corrected_size.width, corrected_size.height);
         canvas_context.restore();
     }
 
-    if (enableBoxes) {
+    if (config.debugEnableBoxes) {
         //lines for debug
         // canvas_context.beginPath();
         let bodies = Composite.allBodies(engine.world);
@@ -559,7 +819,7 @@ function applyRandomGravity() {
 
         }
 
-        canvas_context.lineWidth = 4;
+        canvas_context.lineWidth = 3;
         canvas_context.strokeStyle = '#ff0000';
         canvas_context.stroke();
     }
@@ -569,10 +829,11 @@ function applyRandomGravity() {
 
 
 // Turn off gravity - as a starting point
-engine.world.gravity.y = 0.0;
-engine.world.gravity.x = 0.0;
-// Set up the interval to change gravity every x seconds
-setInterval(applyRandomGravity, 25000);
+// engine.world.gravity.y = 0.0;
+// engine.world.gravity.x = 0.0;
+resetGravity();
+// Setup the interval to change gravity every x seconds
+// setInterval(applyRandomGravity, 25000);
 
 
 // For this to work:
@@ -646,6 +907,10 @@ new WebSocketClient();
 // -----------------------------------------------------------------------------
 // Collision handling
 Events.on(engine, 'collisionStart', (event) => {
+    if (!config.wallColisionEffectEnable) {
+        return;
+    }
+
     event.pairs.forEach((pair) => {
         const bodyA = pair.bodyA;
         const bodyB = pair.bodyB;
@@ -688,6 +953,9 @@ Events.on(engine, 'collisionStart', (event) => {
 //     });
 // });
 
+document.addEventListener('DOMContentLoaded', () => {
+    restoreStickers();
+});
 
 
 
@@ -706,15 +974,6 @@ Events.on(engine, 'collisionStart', (event) => {
 // #############################################################################
 // Test Functions
 // #############################################################################
-// -----------------------------------------------------------------------------
-function removeAllStickers() {
-    Composite.allBodies(engine.world).forEach(body => {
-        if (body.isStatic) return;
-        Composite.remove(engine.world, body);
-    });
-    stickers = [];
-}
-// -----------------------------------------------------------------------------
 // #############################################################################
 // END Test Functions
 // #############################################################################
