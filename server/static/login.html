@@ -85,6 +85,8 @@
 <script src="js/tabler.min.js?1738096682" defer></script>
 
 <script>
+	const hostURL = window.location.origin;
+
 	document.addEventListener('DOMContentLoaded', function() {
 		const loginButton = document.getElementById('loginButton');
 		const errorMessage = document.getElementById('errorMessage');
@@ -117,7 +119,9 @@
 			loginButton.innerHTML = 'Logging in...';
 			errorMessage.style.display = 'none';
 
-			fetch('http://127.0.0.1:8000/api/auth/login', {
+			const hostEndpoint = hostURL + '/api/auth/login';
+
+			fetch(hostEndpoint, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

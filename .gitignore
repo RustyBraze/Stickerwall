@@ -16,6 +16,7 @@ server/database.db
 database.db
 *.db
 
+node_modules/
 
 
 

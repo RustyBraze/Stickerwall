@@ -1,59 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>Sticker Party!</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Sticker Admin</title>
+
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.2.0/dist/css/tabler.min.css"/>
+
+
     <style>
-        html, body {
-            margin: 0;
-            overflow: hidden;
-            background: dimgray;
-        }
-        canvas {
-            display: block;
-        }
-        /*#stickerDIV {*/
-        /*    position: absolute;*/
-        /*    top: 0;*/
-        /*    left: 0;*/
-        /*    width: 100%;*/
-        /*    height: 100%;*/
+        /*body {*/
+        /*    background: #111;*/
+        /*    color: white;*/
+        /*    font-family: sans-serif;*/
+        /*    display: flex;*/
+        /*    flex-wrap: wrap;*/
+        /*    gap: 10px;*/
+        /*    padding: 10px;*/
         /*}*/
-
-        #messageDIV {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 25%;
-            height: 50px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-
-            background: gray;
-            background-blend-mode: overlay;
-            transform: translate(-50%, -50%);
-
-            color: white;
-            font-size: 20px;
-            font-family: 'Courier New', Courier, monospace;
-
-        }
     </style>
+
 
 </head>
 <body>
-<canvas id="stickerCanvas"></canvas>
 
-<div>
-    <a href="/wall.html">Open Sticker Wall</a>
+<div class="page">
+    <div class="page-wrapper">
+        <div class="page-body">
+            <div>
+                <h1 style="position: absolute; top: 20%; left: 50%; transform: translateX(-50%); font-size: xxx-large; font-weight: bold">Stickerwall</h1>
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; gap: 20px;">
+                <a href="wall.html" class="btn btn-primary btn-lg" style="width: 40%">Open Wall</a>
+                <a href="admin.html" class="btn btn-secondary btn-lg" style="width: 40%">Open Admin</a>
+            </div>
+        </div>
+    </div>
 </div>
-<div>
-    <a href="/admin.html">Admin</a>
-</div>
 
 
+
+
+
+
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.2.0/dist/js/tabler.min.js"></script>
 
 </body>
 </html>

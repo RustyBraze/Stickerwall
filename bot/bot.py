@@ -173,29 +173,11 @@ async def command_start_handler(message: Message) -> None:
 # ------------------------------------------------------------------------------
 @dp.message(F.content_type.in_('sticker'))
 async def handle_sticker(message: types.Message):
-    # sticker: File = await bot.get_file(message.sticker.file_id)
-    # sticker_path = f"public/stickers/{message.sticker.file_id}.webp"
-    # sticker_url = f"stickers/{message.sticker.file_id}.webp"
-    #
-    # os.makedirs("public/stickers", exist_ok=True)
-    #
-    # file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{sticker.file_path}"
-    #
-    # async with aiohttp.ClientSession() as session:
-    #     async with session.get(file_url) as resp:
-    #         if resp.status == 200:
-    #             with open(sticker_path, 'wb') as f:
-    #                 f.write(await resp.read())
-    #
-    # print(f"Sticker saved at {sticker_path}")
-    #
-    # # Notify WebSocket clients
-    # await send_sticker_to_ws(sticker_url, message.from_user.username, message.from_user.id)
-    # Get user information
-    user_id = message.from_user.id
-    username = message.from_user.username or "No username"
+    telegram_user_id = message.from_user.id
+    telegram_username = message.from_user.username or "No username"
+    telegram_full_username = message.from_user.full_name or "No name"
 
-    # Get sticker file
+    # Get the sticker file
     sticker: File = await bot.get_file(message.sticker.file_id)
     file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{sticker.file_path}"
 
@@ -210,8 +192,9 @@ async def handle_sticker(message: types.Message):
                 # Create message with sticker data
                 sticker_message = {
                     "type": "sticker",
-                    "bot_user": username,
-                    "bot_id": user_id,
+                    "telegram_username": telegram_username,
+                    "telegram_full_username": telegram_full_username,
+                    "telegram_user_id": telegram_user_id,
                     "sticker_id": message.sticker.file_id,
                     "sticker_data": base64_sticker,
                     "file_extension": "webp"  # Telegram stickers are always webp
@@ -219,9 +202,10 @@ async def handle_sticker(message: types.Message):
 
                 # Send to WebSocket server
                 await send_sticker_to_ws(json.dumps(sticker_message))
-                logger.info(f"Sticker sent to server from user: {username}")
+                logger.info(f"Sticker sent to server from user: {telegram_username}")
             else:
                 logger.error(f"Failed to download sticker: {resp.status}")
+# ------------------------------------------------------------------------------
 
 
 # ------------------------------------------------------------------------------
