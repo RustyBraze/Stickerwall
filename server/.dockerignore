@@ -1,0 +1,8 @@
+*.env
+.env
+start_dev_server.bat
+start_dev_server.sh
+database.db
+
+__pycache__
+__pycache__/*

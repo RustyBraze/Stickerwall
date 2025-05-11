@@ -16,6 +16,8 @@ server/database.db
 database.db
 *.db
 
+docker-compose.yml
+
 node_modules/
 
 

@@ -38,7 +38,7 @@ let config = {
             enable: true,
             friction: 0.01,
             frictionAir: 0.01,
-            restitution: 0.5,
+            restitution: 0.1,
             inertia: 0,
             inverseInertia: 0,
             initialSpeed: 0.2
@@ -79,9 +79,20 @@ let config = {
             timeout: 5000,        // Maximum animation duration
             checkInterval: 10000   // How often to check for stuck animations
         }
+    },
+
+    mouse: {
+        enable: true,
+        throwMultiplier: 1,
+        constraint: {
+            stiffness: 0.1,
+            damping: 0,
+            visible: true         // Whether to show the constraint line
+        }
     }
 
-};
+
+    };
 // #############################################################################
 
 // #############################################################################
@@ -173,6 +184,8 @@ let StickerSize = config.stickers.maxCount; //Actual size of the stickers
 let worldWallsCreatedFlag = false;
 let worldWalls = [];
 
+let mouse;
+let mouseConstraint;
 
 
 
@@ -370,7 +383,26 @@ class WebSocketClient {
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 99999;
         this.reconnectDelay = 1000; // Start with 1 second
+        this.messageDiv = document.getElementById('messageDIV');
         this.connect();
+    }
+
+    updateMessage(message, isConnecting = false) {
+        if (this.messageDiv) {
+            if (isConnecting) {
+                this.messageDiv.innerHTML = `
+                    <p>
+                        ${message}<br>
+                        <strong>Connecting to server...</strong>
+                    </p>`;
+            } else {
+                this.messageDiv.innerHTML = `
+                    <p>
+                        Sticker Party!<br>
+                        <strong>${message}</strong>
+                    </p>`;
+            }
+        }
     }
 
     getWebSocketUrl() {
@@ -391,27 +423,33 @@ class WebSocketClient {
     }
 
     connect() {
+        this.updateMessage("Please wait...", true);
         this.ws = new WebSocket(this.getWebSocketUrl());
 
         this.ws.onopen = () => {
             Debug.info('network', 'WebSocket Connected');
             this.reconnectAttempts = 0;
             this.reconnectDelay = 1000;
+            // Request bot info when connected
+            this.ws.send(JSON.stringify({ type: 'get_bot_info' }));
         };
 
         this.ws.onclose = () => {
             if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                Debug.warn('network', `WebSocket Reconnecting... Attempt ${this.reconnectAttempts + 1}`);
+                Debug.warn('network', `WebSocket Reconnecting... Attempt ${this.reconnectAttempts + 1} - Wait: ${this.reconnectDelay * 2}`);
+                this.updateMessage("Reconnecting to server...", true);
                 setTimeout(() => this.connect(), this.reconnectDelay);
                 this.reconnectAttempts++;
                 this.reconnectDelay *= 2; // Exponential backoff
             } else {
                 Debug.error('network','WebSocket Failed to connect after maximum attempts');
+                this.updateMessage("Failed to connect to server", true);
             }
         };
 
         this.ws.onerror = (error) => {
             Debug.error('network','WebSocket Error:', error);
+            this.updateMessage("Connection error", true);
         };
 
         this.ws.onmessage = (event) => {
@@ -420,6 +458,16 @@ class WebSocketClient {
                 Debug.debug('network','Received message:', data);
 
                 switch (data.type) {
+                    case 'bot_info':
+                        Debug.debug('network', 'BOT Information:', data.data);
+                        // Update the message div with bot username
+                        if (data.data.username) {
+                            config.bot.username = data.data.username;
+                            config.bot.fullName = data.data.full_name || data.data.username;
+                            this.updateMessage(`@${data.data.username}`);
+                        }
+                        break;
+
                     case 'wall_clear':
                         // Remove all stickers from the wall
                         removeAllStickers();
@@ -445,6 +493,13 @@ class WebSocketClient {
                         removeSticker(data.data.sticker_id);
                         // StickerManager.removeSticker(data.sticker_id);
                         break;
+
+                    // case 'bot_info':
+                    //     // Remove sticker from the wall
+                    //     Debug.debug('network','BOT Information:', data.data);
+                    //     // removeSticker(data.data.sticker_id);
+                    //     // StickerManager.removeSticker(data.sticker_id);
+                    //     break;
 
                     default:
                         Debug.warn('network','Unknown sticker action:', data.type);
@@ -528,6 +583,9 @@ function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     Debug.debug('messages', 'Canvas Size set:', canvas.width, canvas.height);
+
+    // const infoBox = document.getElementById('messageDIV');
+    // infoBox.innerHTML = `Canvas Size: ${canvas.width}x${canvas.height}.${window.devicePixelRatio}`;
 
     if (worldWallsCreatedFlag) {
         createWalls();
@@ -942,6 +1000,9 @@ function resetGravity() {
     engine.world.gravity.x = config.world.gravity.x;
     engine.world.gravity.y = config.world.gravity.y;
 
+    // engine.timing.timeScale = 0.1;
+    // engine.gravity.scale = 0.0001;
+
     Debug.debug('physics', "Gravity back to default");
 }
 
@@ -959,12 +1020,95 @@ function applyRandomGravity() {
 }
 // -----------------------------------------------------------------------------
 
+function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+    }
+    Debug.debug('messages', "Functions loaded");
+}// -----------------------------------------------------------------------------
+// toggleFullScreen();
+
+// -----------------------------------------------------------------------------
+function initializeMouseInteraction() {
+    // Add mouse control
+    mouse = Matter.Mouse.create(canvas);
+    // mouse.pixelRatio = window.devicePixelRatio; // Handle high DPI displays
+    mouse.pixelRatio = 1
+
+    // Create the mouse constraint
+    mouseConstraint = Matter.MouseConstraint.create(engine, {
+        mouse: mouse,
+        throwMultiplier: config.mouse.constraint.throwMultiplier,
+        constraint: {
+            stiffness: config.mouse.constraint.stiffness,
+            damping: config.mouse.constraint.damping,
+            render: {
+                visible: false
+            }
+        }
+    });
+
+    // Add mouse constraint to world
+    Matter.Composite.add(engine.world, mouseConstraint);
+
+    // Add mouse interaction events
+    Matter.Events.on(mouseConstraint, 'mousedown', function(event) {
+        const mousePosition = event.mouse.position;
+        Debug.debug('physics', 'Mouse down at:', mousePosition);
+    });
+
+    Matter.Events.on(mouseConstraint, 'mousemove', function(event) {
+        // Optional: Handle mouse movement
+    });
+
+    Matter.Events.on(mouseConstraint, 'mouseup', function(event) {
+        // Optional: Handle mouse release
+        const mousePosition = event.mouse.position;
+        Debug.debug('physics', 'Mouse up at:', mousePosition);
+    });
+
+    // Add movement multiplier for "throwing" stickers
+    Matter.Events.on(mouseConstraint, 'enddrag', function(event) {
+        if (event.body) {
+            // Increase the velocity after dragging
+            const velocityMultiplier = 1.5; // Adjust this value to change throw strength
+            Matter.Body.setVelocity(event.body, {
+                x: event.body.velocity.x * velocityMultiplier,
+                y: event.body.velocity.y * velocityMultiplier
+            });
+        }
+    });
+
+    // Prevent page scrolling when interacting with canvas
+    canvas.addEventListener('mousewheel', function(event) {
+        event.preventDefault();
+    });
+
+    canvas.addEventListener('touchmove', function(event) {
+        event.preventDefault();
+    }, { passive: false });
+}
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+function toggleMouseInteraction(enable) {
+    if (enable && !mouseConstraint) {
+        initializeMouseInteraction();
+    } else if (!enable && mouseConstraint) {
+        Matter.Composite.remove(engine.world, mouseConstraint);
+        mouseConstraint = null;
+    }
+    config.mouse.enable = enable;
+}
+// -----------------------------------------------------------------------------
 
 
 
-
-
-
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 /**
  * Animation Render Loop
@@ -1125,7 +1269,7 @@ function applyRandomGravity() {
                 // position.x,
                 0,
                 // sticker.body.bounds.max.y + 20
-                (height / 2) + 20
+                (height / 2) + 12
             );
         }
 
@@ -1226,6 +1370,20 @@ function applyRandomGravity() {
         }
     }
 
+    // Optionally render mouse constraint
+    if (config.debug.showPhysics && mouseConstraint.constraint.bodyB) {
+        const pos = mouseConstraint.constraint.bodyB.position;
+        const offset = mouseConstraint.constraint.pointB;
+        const mousePos = mouseConstraint.mouse.position;
+
+        canvas_context.beginPath();
+        canvas_context.moveTo(pos.x + offset.x, pos.y + offset.y);
+        canvas_context.lineTo(mousePos.x, mousePos.y);
+        canvas_context.strokeStyle = config.debug.colors.physics;
+        canvas_context.stroke();
+    }
+
+
 })();
 // -----------------------------------------------------------------------------
 
@@ -1249,6 +1407,10 @@ var runner = Runner.create();
 // run the engine
 Runner.run(runner, engine);
 // renderScreen();
+
+if (config.mouse.enable) {
+    initializeMouseInteraction();
+}
 
 
 // Let's connect
@@ -1357,39 +1519,46 @@ Events.on(engine, 'collisionStart', (event) => {
 //     });
 // });
 
+// Events.on(engine, 'beforeUpdate', function() {
+//     engine.gravity.x = Math.cos(engine.timing.timestamp * 0.0005);
+//     engine.gravity.y = Math.sin(engine.timing.timestamp * 0.0005);
+// });
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
     restoreStickers();
 });
 
 window.addEventListener('keydown', (event) => {
     switch(event.key) {
-        case 'q':
+        case '1':
             config.debug.showPhysics = false;
             config.debug.showWalls = true;
             config.debug.showLabels = true;
             config.debug.showStickerSize = true;
             config.debug.showBounds = true;
             break;
-        case 'r':
+        case '2':
             config.debug.showPhysics = false;
             config.debug.showWalls = false;
             config.debug.showLabels = false;
             config.debug.showStickerSize = false;
             config.debug.showBounds = false;
             break;
-        case 'p':
+        case '3':
             config.debug.showPhysics = !config.debug.showPhysics;
             break;
-        case 's':
+        case '4':
             config.debug.showStickerSize = !config.debug.showStickerSize;
             break;
-        case 'w':
+        case '5':
             config.debug.showWalls = !config.debug.showWalls;
             break;
-        case 'l':
+        case '6':
             config.debug.showLabels = !config.debug.showLabels;
             break;
-        case 'b':
+        case '7':
             config.debug.showBounds = !config.debug.showBounds;
             break;
     }

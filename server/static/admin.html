@@ -41,6 +41,7 @@
         }
     </style>
 
+    <script src="./js/admin.js?20250510"></script>
 
 </head>
 <body>
@@ -49,9 +50,14 @@
     <div class="page-wrapper">
         <div class="page-body">
 
+
             <div class="card">
                 <div class="card-header">
                     <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs">
+
+
+
+                        <!-- TAB header Stickers -->
                         <li class="nav-item">
                             <a href="#tabs-home-ex2" class="nav-link active" data-bs-toggle="tab">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24"
@@ -63,11 +69,15 @@
                                     <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
                                     <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
                                 </svg>
-                                Wall
+                                Stickers
                             </a>
                         </li>
+
+
+
+                        <!-- TAB header Users -->
                         <li class="nav-item">
-                            <a href="#tabs-profile-ex2" class="nav-link" data-bs-toggle="tab">
+                            <a href="#tabs-users-ex2" class="nav-link" data-bs-toggle="tab">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24"
                                      height="24" viewBox="0 0 24 24" stroke-width="2"
                                      stroke="currentColor" fill="none" stroke-linecap="round"
@@ -79,6 +89,27 @@
                                 Users
                             </a>
                         </li>
+
+
+
+                        <!-- TAB header Wall -->
+                        <li class="nav-item">
+                            <a href="#tabs-wall-ex2" class="nav-link" data-bs-toggle="tab">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24"
+                                     height="24" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                     stroke-linejoin="round" class="icon me-2">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M19.03 17.818a3 3 0 0 0 1.97 -2.818v-8a3 3 0 0 0 -3 -3h-12a3 3 0 0 0 -3 3v8c0 1.317 .85 2.436 2.03 2.84" />
+                                    <path d="M10 14a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+                                    <path d="M8 21a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2" /></svg>
+                                Wall Control
+                            </a>
+                        </li>
+
+
+
+                        <!-- TAB header Settings -->
                         <li class="nav-item ms-auto">
                             <a href="#tabs-settings-ex2" class="nav-link" title="Settings"
                                data-bs-toggle="tab">
@@ -87,8 +118,7 @@
                                      stroke="currentColor" fill="none" stroke-linecap="round"
                                      stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                    <path
-                                            d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" />
+                                    <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" />
                                     <circle cx="12" cy="12" r="3" />
                                 </svg>
                                 Settings
@@ -97,26 +127,36 @@
                     </ul>
                 </div>
 
+
+
                 <div class="card-body">
                     <div class="tab-content">
 
-                        <!-- Main View -->
+                        <!-- Tab content: Stickers -->
                         <div class="tab-pane active show" id="tabs-home-ex2">
-                            <h4>Stickers Shown</h4>
+                            <h4>Shown</h4>
 
                             <div style="background-color: #c8ecc5">
                                 <div class="my-2 text-center" id="sticker_active"></div>
                             </div>
 
-                            <h4>Available Stickers</h4>
+                            <h4>Available</h4>
 
                             <div style="background-color: #e5e7eb">
                                 <div class="my-2 text-center" id="sticker_inactive"></div>
                             </div>
+
+                            <h4>Banned</h4>
+
+                            <div style="background-color: #e5e7eb">
+                                <div class="my-2 text-center" id="sticker_banned"></div>
+                            </div>
                         </div>
 
-                        <!-- Users -->
-                        <div class="tab-pane" id="tabs-profile-ex2">
+
+
+                        <!-- Tab content: Users -->
+                        <div class="tab-pane" id="tabs-users-ex2">
                             <h4>Allowed Users</h4>
                             <div>
                                 Here is the list of all users that sent a sticker to the wall.
@@ -139,7 +179,30 @@
 
                         </div>
 
-                        <!-- Settings -->
+
+
+                        <!-- Tab content: Wall -->
+                        <div class="tab-pane" id="tabs-wall-ex2">
+                            <h4>Wall control</h4>
+                            <div>
+                                Here you can control the wall.
+                                <br>
+                                <br>
+                                <button class="btn btn-primary" id="clearStickerBtn">Clear Sticker</button>
+                                <button class="btn btn-danger" id="clearAllBtn">Clear All Stickers</button>
+                                <br>
+                                <br>
+                                <div class="alert alert-danger" id="clearStickerAlert" style="display: none;">
+                                    <strong>Error!</strong> Sticker not found.
+                                </div>
+                            </div>
+
+                        </div>
+
+
+
+
+                        <!-- Tab content: Settings -->
                         <div class="tab-pane" id="tabs-settings-ex2">
                             <h4>Settings</h4>
                             <div>
@@ -161,7 +224,7 @@
             <!-- Sticker Modal -->
             <!--<div class="modal modal-blur fade" id="stickerModal" tabindex="-1" style="display: none;" aria-hidden="true">-->
             <!--<div class="modal modal-blur show" id="stickerModal" tabindex="-1" style="display: block;" aria-hidden="false" aria-modal="true">-->
-            <div class="modal modal-blur fade" id="stickerModal" tabindex="-1" style="display: none;" aria-hidden="true">
+            <div class="modal modal-blur fade hide" id="stickerModal" tabindex="-1" style="display: none;" aria-hidden="true">
                 <div class="modal-dialog modal-1 modal-dialog-centered modal-s" role="document">
                     <div class="modal-content">
                         <!--            <h5 class="modal-title">Sticker Details</h5>-->
@@ -169,7 +232,7 @@
 
                         <div class="modal-header">
                             <h5 class="modal-title">Modal title</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close btn-close-event" data-bs-dismiss="modal" aria-label="Close" id="modalBtnClose1"></button>
                         </div>
 
                         <div class="modal-body">
@@ -181,13 +244,26 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col col-4">
-                                    <div class="card card-borderless mb-1">
-                                        <div class="card-body align-content-center align-items-center text-center align-middle">
-                                            <button class="btn btn-primary mb-1 w-full" id="modalBtnShowSticker">Show</button>
-                                            <button class="btn btn-secondary mb-1 w-full" id="modalBtnHideSticker">Hide</button>
-                                            <button class="btn btn-danger mb-1 w-full" id="modalBtnBanSticker">Ban</button>
-                                        </div>
+
+                                <div class="col col-4 card card-borderless mb-2">
+                                    <div class="card-body align-content-center align-items-center text-center align-middle">
+
+                                        <button type="button" class="btn btn-warning my-4 w-full" id="modalBtnBanSticker">
+                                            Ban/unban
+                                        </button>
+
+                                        <button type="button" class="btn btn-danger my-4 w-full" id="deleteStickerBtn">
+                                            <!-- Download SVG icon from http://tabler.io/icons/icon/trash -->
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M4 7l16 0"/>
+                                                <path d="M10 11l0 6"/>
+                                                <path d="M14 11l0 6"/>
+                                                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                                                <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
+                                            </svg>
+                                            Delete
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -202,25 +278,46 @@
                         </div>
 
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-danger" id="deleteStickerBtn">
-                                <!-- Download SVG icon from http://tabler.io/icons/icon/trash -->
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M4 7l16 0"/>
-                                    <path d="M10 11l0 6"/>
-                                    <path d="M14 11l0 6"/>
-                                    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
-                                    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
-                                </svg>
-                                Delete Sticker
-                            </button>
+                            <button type="button" class="btn btn-link link-secondary me-auto btn-close-event" data-bs-dismiss="modal" id="modalBtnClose2">Close</button>
+
+                            <button type="button" class="btn btn-primary" id="modalBtnShowSticker" style="width: 40%">Show/Hide</button>
+
+
                         </div>
 
                     </div>
                 </div>
+
+
+
             </div>
 
+
+            <!-- MODAL: Confirmation box -->
+            <div class="modal modal-blur fade hide" id="modalConfirmAction" tabindex="-1" style="display: none;" aria-hidden="true">
+                <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <div class="modal-title">Are you sure?</div>
+                            <div>If you proceed, you will lose all your personal data.</div>
+                            <input type="hidden" id="modalConfirmActionId">
+                            <input type="hidden" id="modalConfirmEntityId">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-link link-secondary me-auto btn-close-event" data-bs-dismiss="modal" id="modalBtnClose3">Cancel</button>
+                            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Yes, delete all my data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+
+
+<!--            <div class="modal modal-blur fade position-relative rounded d-block show bg-surface-backdrop py-6 w-auto h-auto" id="modal-small" tabindex="-1" role="dialog" aria-hidden="true">-->
+<!--            </div>-->
 
 
 
@@ -272,7 +369,6 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.2.0/dist/js/tabler.min.js"></script>
-<script src="js/admin.js"></script>
 
 </body>
 </html>

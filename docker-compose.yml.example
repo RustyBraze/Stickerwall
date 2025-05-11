@@ -1,0 +1,53 @@
+services:
+  # ------------------------------------------------------------------------------
+  stickerwall:
+    image: rustybraze/stickerwall:latest
+    restart: unless-stopped
+
+    env_file:
+      - path: ".env"
+        required: false
+
+    environment:
+      # Key for the websock communication - BOT Server + Backend Server use this to authenticate
+      BOT_SERVER_WEBSOCKET_API_KEY: ""
+      # Initial password for the user admin (access via admin.html page)
+      INITIAL_ADMIN_PASSWORD: ""
+
+    volumes:
+      - ./data/stickers:/app/static/stickers
+      - ./data/database.db:/app/database.db
+
+    ports:
+      - 8000:8000
+
+    networks:
+      - sticker_net
+
+# ------------------------------------------------------------------------------
+  stickerbot:
+    image: rustybraze/stickerbot:latest
+    restart: unless-stopped
+
+    env_file:
+      - path: ".env"
+        required: false
+
+    environment:
+      PYTHONUNBUFFERED: 1
+      # Key for the websock communication - BOT Server + Backend Server use this to authenticate
+      BOT_SERVER_WEBSOCKET_API_KEY: ""
+      # Telegram NOT TOKEN (From @Botfather)
+      BOT_SERVER_TELEGRAM_BOT_TOKEN: ""
+      # Internal websock to exchange communication (set the IP of the server or the image name)
+      BOT_SERVER_WEBSOCKET_SERVER_URI: "ws://stickerbot:8000/ws/telegram"
+
+    depends_on:
+      - stickerwall
+
+    networks:
+      - sticker_net
+
+networks:
+  sticker_net:
+    driver: bridge

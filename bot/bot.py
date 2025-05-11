@@ -113,6 +113,16 @@ async def create_ws_connection():
                 # Start the heartbeat task
                 heartbeat_task = asyncio.create_task(heartbeat(websocket, bot_info))
 
+                # Lets send the bot info
+                sticker_message = {
+                    "type": "bot_info",
+                    "username": bot_info.username,
+                    "full_name": bot_info.full_name
+                }
+
+                # Send to WebSocket server
+                await send_sticker_to_ws(json.dumps(sticker_message))
+
                 # Keep the connection alive and handle other messages
                 while True:
                     try:
