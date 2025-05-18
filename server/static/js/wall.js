@@ -389,6 +389,7 @@ class WebSocketClient {
 
     updateMessage(message, isConnecting = false) {
         if (this.messageDiv) {
+
             if (isConnecting) {
                 this.messageDiv.innerHTML = `
                     <p>
@@ -396,11 +397,62 @@ class WebSocketClient {
                         <strong>Connecting to server...</strong>
                     </p>`;
             } else {
-                this.messageDiv.innerHTML = `
-                    <p>
-                        Sticker Party!<br>
-                        <strong>${message}</strong>
-                    </p>`;
+                // this.messageDiv.innerHTML = `
+                //     <p>
+                //         Sticker Party!<br>
+                //         <strong>${message}</strong>
+                //     </p>`;
+
+                // Clear previous content
+                this.messageDiv.innerHTML = '';
+
+                // Create title
+                const titleDiv = document.createElement('div');
+                titleDiv.textContent = 'Sticker Wall';
+                // titleDiv.style.width = '200px'
+                titleDiv.style.fontSize = '24px';
+                titleDiv.style.marginTop = '5px';
+                titleDiv.style.marginBottom = '10px';
+                titleDiv.style.fontWeight = 'bold';
+
+                // Create QR code container
+                const qrDiv = document.createElement('div');
+                qrDiv.id = 'qrcode';
+
+                // Create bot handle text
+                const handleDiv = document.createElement('div');
+                handleDiv.textContent = `@${config.bot.username}`;
+                handleDiv.style.marginTop = '5px';
+                handleDiv.style.fontSize = '16px';
+
+                // Add all elements to message div
+                this.messageDiv.appendChild(titleDiv);
+                this.messageDiv.appendChild(qrDiv);
+                this.messageDiv.appendChild(handleDiv);
+
+                // Generate QR code
+                const botHandle = `https://t.me/${config.bot.username}`;
+                new QRCode(document.getElementById("qrcode"), {
+                    text: botHandle,
+                    width: 130,
+                    height: 130,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                // Center align all content
+                this.messageDiv.style.textAlign = 'center';
+
+                // Style QR code container
+                const qrContainer = document.getElementById('qrcode');
+                qrContainer.style.display = 'flex';
+                qrContainer.style.justifyContent = 'center';
+                qrContainer.style.margin = '0 auto';
+
+
+
+
             }
         }
     }
@@ -436,11 +488,13 @@ class WebSocketClient {
 
         this.ws.onclose = () => {
             if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                Debug.warn('network', `WebSocket Reconnecting... Attempt ${this.reconnectAttempts + 1} - Wait: ${this.reconnectDelay * 2}`);
+                // Debug.warn('network', `WebSocket Reconnecting... Attempt ${this.reconnectAttempts + 1} - Wait: ${this.reconnectDelay * 2}`);
+                Debug.warn('network', `WebSocket Reconnecting... Attempt ${this.reconnectAttempts + 1} - Wait: ${this.reconnectDelay + 250}`);
                 this.updateMessage("Reconnecting to server...", true);
                 setTimeout(() => this.connect(), this.reconnectDelay);
                 this.reconnectAttempts++;
-                this.reconnectDelay *= 2; // Exponential backoff
+                // this.reconnectDelay *= 1.2; // Exponential backoff
+                this.reconnectDelay += 250; // Exponential backoff
             } else {
                 Debug.error('network','WebSocket Failed to connect after maximum attempts');
                 this.updateMessage("Failed to connect to server", true);
@@ -494,6 +548,14 @@ class WebSocketClient {
                         // StickerManager.removeSticker(data.sticker_id);
                         break;
 
+                    case 'wall_sync':
+                        Debug.debug('network','Sync requested - waiting 10 seconds before executing');
+                        setTimeout(() => {
+                            handleWallSync(data);
+                        }, 10000);
+                        // handleWallSync(data);
+                        break;
+
                     // case 'bot_info':
                     //     // Remove sticker from the wall
                     //     Debug.debug('network','BOT Information:', data.data);
@@ -503,7 +565,7 @@ class WebSocketClient {
 
                     default:
                         Debug.warn('network','Unknown sticker action:', data.type);
-                        Debug.debug('network','Received message:', data);
+                        Debug.debug('network','Unknown received message:', data);
                 }
 
             } catch (error) {
@@ -638,7 +700,8 @@ function createWalls() {
     const WallGroundtop = Bodies.rectangle(canvas.width / 2, 0, canvas.width, 50, { label: "groundTop", isStatic: true, restitution: config.world.walls.forceRestitution });
     const WallGroundRight = Bodies.rectangle(canvas.width, canvas.height / 2, 50, canvas.height, { label: "groundRight", isStatic: true, restitution: config.world.walls.forceRestitution });
     const WallGroundLeft = Bodies.rectangle(0, canvas.height / 2, 50, canvas.height, { label: "groundLeft", isStatic: true, restitution: config.world.walls.forceRestitution });
-    const WallCenterBlock = Bodies.rectangle(canvas.width / 2, canvas.height / 2, canvas.width / 4, 50, { label: "centerBlock", isStatic: true, restitution: config.world.walls.forceRestitution });
+    // const WallCenterBlock = Bodies.rectangle(canvas.width / 2, canvas.height / 2, canvas.width / 4, 50, { label: "centerBlock", isStatic: true, restitution: config.world.walls.forceRestitution });
+    const WallCenterBlock = Bodies.rectangle(canvas.width / 2, canvas.height / 2, 200, 200, { label: "centerBlock", isStatic: true, restitution: config.world.walls.forceRestitution });
 
     worldWalls.push(WallGroundBottom);
     worldWalls.push(WallGroundtop);
@@ -1104,9 +1167,65 @@ function toggleMouseInteraction(enable) {
 }
 // -----------------------------------------------------------------------------
 
-
-
 // -----------------------------------------------------------------------------
+function handleWallSync(message) {
+    Debug.info('network', `Running Sync feature now...`);
+
+    const serverStickers = message.data;
+    const serverStickerIds = new Set(serverStickers.map(s => s.sticker_id));
+
+    // Remove stickers that are not in the server list
+    stickers = stickers.filter(sticker => {
+        if (!serverStickerIds.has(sticker.id)) {
+
+
+        //     addSticker(data.data.path, data.data.sticker_id);
+        //     break;
+        //
+        // case 'sticker_remove':
+        //     // Remove sticker from the wall
+        //     Debug.debug('network','Removing sticker:', data.data.sticker_id);
+        //     removeSticker(data.data.sticker_id);
+            removeSticker(sticker.id);
+
+            // // Remove from physics world
+            // World.remove(engine.world, sticker.body);
+            // // Remove from storage
+            // StorageManager.removeSticker();
+            Debug.info('network', `Removed sticker not in sync: ${sticker.id}`);
+            return false;
+        }
+        return true;
+    });
+
+    // Add new stickers from server that don't exist locally
+    serverStickers.forEach(serverSticker => {
+        const exists = stickers.some(s => s.id === serverSticker.sticker_id);
+        if (!exists) {
+            addSticker(serverSticker.path, serverSticker.sticker_id)
+
+            // // Create new sticker
+            // const sticker = createSticker(
+            //     serverSticker.sticker_id,
+            //     serverSticker.path,
+            //     { x: Math.random() * canvas.width, y: Math.random() * canvas.height },
+            //     serverSticker.boost_factor
+            // );
+            //
+            // // Add to physics world
+            // World.add(engine.world, sticker.body);
+            // // Add to stickers array
+            // stickers.push(sticker);
+            // // Start animation for new sticker
+            // AnimationManager.startAnimation(sticker);
+
+            Debug.info('network', `Added new sticker from sync: ${serverSticker.sticker_id}`);
+        }
+    });
+}
+// -----------------------------------------------------------------------------
+
+
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -1413,8 +1532,8 @@ if (config.mouse.enable) {
 }
 
 
-// Let's connect
-new WebSocketClient();
+// // Let's connect
+// new WebSocketClient();
 
 
 
@@ -1528,6 +1647,10 @@ Events.on(engine, 'collisionStart', (event) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     restoreStickers();
+
+    // Let's connect
+    new WebSocketClient();
+
 });
 
 window.addEventListener('keydown', (event) => {

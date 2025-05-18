@@ -331,6 +331,8 @@ class WallMessageType(str, Enum):
     CLEAR = "wall_clear"
     RELOAD = "wall_reload"
     RESTART = "wall_restart"
+    SYNC = "wall_sync"
+    IGNORE = "wall_ignore"
     STICKER_ADD = "sticker_add"
     STICKER_REMOVE = "sticker_remove"
     BOT_INFO = "bot_info"
@@ -472,6 +474,42 @@ def update_bot_info(username: str, full_name: str):
 
 
 # ------------------------------------------------------------------------------
+
+
+def generate_wall_sync_payload() -> dict:
+    with (Session(engine) as session):
+        base_query = select(
+            Sticker.sticker_uuid,
+            Sticker.sticker_path,
+            Sticker.visible,
+            Sticker.boost_factor
+        ).where(
+            and_(
+                Sticker.visible == True,
+                Sticker.banned == False
+            )
+        ).order_by(desc(Sticker.boost_factor)).limit(limit=200)  # Show popular stickers first
+
+        stickers = session.exec(base_query).all()
+
+        stickers_data:list = []
+
+        # Let's create the sticker payload
+        for sticker in stickers:
+            temp_data = {
+                    "sticker_id": sticker.sticker_uuid,
+                    "path": sticker.sticker_path,
+                    "boost_factor": sticker.boost_factor
+                }
+            stickers_data.append(temp_data)
+
+        sync_message = {
+            "type": (len(stickers_data) > 0) and WallMessageType.SYNC or WallMessageType.IGNORE,
+            "data": stickers_data
+        }
+
+        # return json.dumps(sync_message)
+        return sync_message
 # ------------------------------------------------------------------------------
 
 
@@ -753,6 +791,15 @@ async def websocket_wall_endpoint(websocket: WebSocket):
             "data": bot_information
         })
 
+        # logging.debug("-" * 120)
+        # logging.debug(await generate_wall_sync_payload())
+        # logging.debug("-" * 120)
+
+        # Sync wall
+        await websocket.send_json(generate_wall_sync_payload())
+        logging.info(f"Sending initial sync")
+
+
         # while True:
         #     data = await websocket.receive_text()
         #     logging.info(f"Received message: {data}")
@@ -915,7 +962,7 @@ async def reload_wall(authenticated: bool = Depends(verify_api_key)):
                 Sticker.visible == True,
                 Sticker.banned == False
             )
-        ).order_by(desc(Sticker.boost_factor)).limit(limit=10)  # Show popular stickers first
+        ).order_by(desc(Sticker.boost_factor)).limit(limit=200)  # Show popular stickers first
 
         stickers = session.exec(base_query).all()
 

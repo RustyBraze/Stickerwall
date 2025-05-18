@@ -13,8 +13,8 @@
             background-position: center;
             background-repeat: no-repeat;
             /*background-size: auto 100%;*/
-            /*background-size: cover;*/
-            background-size: 100% auto;
+            background-size: cover;
+            /*background-size: 100% auto;*/
         }
         canvas {
             display: block;
@@ -27,25 +27,43 @@
         /*    height: 100%;*/
         /*}*/
 
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+
         #messageDIV {
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 25%;
-            height: 50px;
-            display: flex;
+            /*width: 25%;*/
+            width: 200px;
+            height: 200px;
+
+            /*display: flex;*/
             justify-content: center;
             align-items: center;
             text-align: center;
 
-            background: gray;
-            background-blend-mode: overlay;
+            /*background: #94039e;*/
+            /*background-blend-mode: overlay;*/
+            background: linear-gradient(-45deg, #94039e, #3e0142, #7f0489, #810289);
+            background-size: 200% 200%;
+            animation: gradient 20s ease infinite;
+
             transform: translate(-50%, -50%);
 
             color: white;
             font-size: 20px;
             font-family: 'Courier New', Courier, monospace;
-
         }
     </style>
 
@@ -61,8 +79,9 @@
     <p>Sticker Party!</p>
 </div>
 
-
-<script src="js/wall.min.js?20250512"></script>
+<script src="js/qrcode.min.js"></script>
+<script src="js/wall.min.js?20250518"></script>
+<!--<script src="js/wall.js?20250512"></script>-->
 
 </body>
 </html>
