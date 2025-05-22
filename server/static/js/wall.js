@@ -384,18 +384,24 @@ class WebSocketClient {
         this.maxReconnectAttempts = 99999;
         this.reconnectDelay = 1000; // Start with 1 second
         this.messageDiv = document.getElementById('messageDIV');
+        this.messageCard = document.getElementById('messageCard');
         this.connect();
     }
 
     updateMessage(message, isConnecting = false) {
-        if (this.messageDiv) {
+        // if (this.messageDiv) {
+        if (this.messageCard) {
 
             if (isConnecting) {
-                this.messageDiv.innerHTML = `
-                    <p>
-                        ${message}<br>
-                        <strong>Connecting to server...</strong>
-                    </p>`;
+                // this.messageDiv.innerHTML = `
+                this.messageCard.innerHTML = `
+                    <div class="com-info">
+                        <p>
+                            <strong>Almost there...</strong>
+                            <br>
+                            ${message}
+                        </p>
+                    </div>`;
             } else {
                 // this.messageDiv.innerHTML = `
                 //     <p>
@@ -404,52 +410,73 @@ class WebSocketClient {
                 //     </p>`;
 
                 // Clear previous content
-                this.messageDiv.innerHTML = '';
+                // this.messageDiv.innerHTML = '';
+                this.messageCard.innerHTML = '';
 
                 // Create title
-                const titleDiv = document.createElement('div');
-                titleDiv.textContent = 'Sticker Wall';
-                // titleDiv.style.width = '200px'
-                titleDiv.style.fontSize = '24px';
-                titleDiv.style.marginTop = '5px';
-                titleDiv.style.marginBottom = '10px';
-                titleDiv.style.fontWeight = 'bold';
+                // const titleDiv = document.createElement('div');
+                // titleDiv.textContent = 'Sticker Wall';
+                // // titleDiv.style.width = '200px'
+                // titleDiv.style.fontSize = '24px';
+                // titleDiv.style.marginTop = '5px';
+                // titleDiv.style.marginBottom = '10px';
+                // titleDiv.style.fontWeight = 'bold';
+                const textDiv = document.createElement('div');
+                textDiv.classList.add('text-content');
 
-                // Create QR code container
+                const titleH1 = document.createElement('h1');
+                titleH1.textContent = 'sticker wall';
+
+                const textP = document.createElement('p');
+                // textP.textContent = `send your sticker to<br>@${config.bot.username}`;
+                textP.innerHTML = `send your sticker to<br>@${config.bot.username}`;
+
+                textDiv.appendChild(titleH1);
+                textDiv.appendChild(textP);
+
                 const qrDiv = document.createElement('div');
+                qrDiv.classList.add('qr-container');
                 qrDiv.id = 'qrcode';
 
-                // Create bot handle text
-                const handleDiv = document.createElement('div');
-                handleDiv.textContent = `@${config.bot.username}`;
-                handleDiv.style.marginTop = '5px';
-                handleDiv.style.fontSize = '16px';
+                this.messageCard.appendChild(textDiv);
+                this.messageCard.appendChild(qrDiv);
 
-                // Add all elements to message div
-                this.messageDiv.appendChild(titleDiv);
-                this.messageDiv.appendChild(qrDiv);
-                this.messageDiv.appendChild(handleDiv);
 
+
+                // // Create QR code container
+                // const qrDiv = document.createElement('div');
+                // qrDiv.id = 'qrcode';
+                //
+                // // Create bot handle text
+                // const handleDiv = document.createElement('div');
+                // handleDiv.textContent = `@${config.bot.username}`;
+                // handleDiv.style.marginTop = '5px';
+                // handleDiv.style.fontSize = '16px';
+                //
+                // // Add all elements to message div
+                // this.messageDiv.appendChild(titleDiv);
+                // this.messageDiv.appendChild(qrDiv);
+                // this.messageDiv.appendChild(handleDiv);
+                //
                 // Generate QR code
                 const botHandle = `https://t.me/${config.bot.username}`;
                 new QRCode(document.getElementById("qrcode"), {
                     text: botHandle,
-                    width: 130,
-                    height: 130,
+                    width: 100,
+                    height: 100,
                     colorDark: "#000000",
                     colorLight: "#ffffff",
                     correctLevel: QRCode.CorrectLevel.H
                 });
-
-                // Center align all content
-                this.messageDiv.style.textAlign = 'center';
-
-                // Style QR code container
-                const qrContainer = document.getElementById('qrcode');
-                qrContainer.style.display = 'flex';
-                qrContainer.style.justifyContent = 'center';
-                qrContainer.style.margin = '0 auto';
-
+                //
+                // // Center align all content
+                // this.messageDiv.style.textAlign = 'center';
+                //
+                // // Style QR code container
+                // const qrContainer = document.getElementById('qrcode');
+                // qrContainer.style.display = 'flex';
+                // qrContainer.style.justifyContent = 'center';
+                // qrContainer.style.margin = '0 auto';
 
 
 
@@ -701,7 +728,7 @@ function createWalls() {
     const WallGroundRight = Bodies.rectangle(canvas.width, canvas.height / 2, 50, canvas.height, { label: "groundRight", isStatic: true, restitution: config.world.walls.forceRestitution });
     const WallGroundLeft = Bodies.rectangle(0, canvas.height / 2, 50, canvas.height, { label: "groundLeft", isStatic: true, restitution: config.world.walls.forceRestitution });
     // const WallCenterBlock = Bodies.rectangle(canvas.width / 2, canvas.height / 2, canvas.width / 4, 50, { label: "centerBlock", isStatic: true, restitution: config.world.walls.forceRestitution });
-    const WallCenterBlock = Bodies.rectangle(canvas.width / 2, canvas.height / 2, 200, 200, { label: "centerBlock", isStatic: true, restitution: config.world.walls.forceRestitution });
+    const WallCenterBlock = Bodies.rectangle(canvas.width / 2, canvas.height / 2, 290, 120, { label: "centerBlock", isStatic: true, restitution: config.world.walls.forceRestitution });
 
     worldWalls.push(WallGroundBottom);
     worldWalls.push(WallGroundtop);

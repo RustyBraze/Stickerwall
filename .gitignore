@@ -20,6 +20,9 @@ docker-compose.yml
 
 node_modules/
 
+docker_build.bat
+docker_push.bat
+test.html
 
 
 # Byte-compiled / optimized / DLL files

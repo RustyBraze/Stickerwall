@@ -1,0 +1,198 @@
+html, body {
+    margin: 0;
+    overflow: hidden;
+    background: dimgray;
+    /*background-image: url("https://i.imgur.com/vccw0IO.jpeg");*/
+    background-image: url("../img/background1.jpeg");
+    /*background-position: center;*/
+    background-position: top center;
+    background-repeat: no-repeat;
+    /*background-size: auto 100%;*/
+    background-size: cover;
+    /*background-size: 100% auto;*/
+}
+canvas {
+    display: block;
+}
+/*#stickerDIV {*/
+/*    position: absolute;*/
+/*    top: 0;*/
+/*    left: 0;*/
+/*    width: 100%;*/
+/*    height: 100%;*/
+/*}*/
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+
+#messageDIV {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /*width: 25%;*/
+    width: 200px;
+    height: 200px;
+
+    /*display: flex;*/
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+
+    /*background: #94039e;*/
+    /*background-blend-mode: overlay;*/
+    background: linear-gradient(-45deg, #94039e, #3e0142, #7f0489, #810289);
+    background-size: 200% 200%;
+    animation: gradient 20s ease infinite;
+
+    transform: translate(-50%, -50%);
+
+    color: white;
+    font-size: 20px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.center-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 300px;
+    height: 300px;
+    transform: translate(-50%, -50%);
+    display: flex;
+
+    background: #94039e;
+    background-blend-mode: overlay;
+}
+.col1, .col2 {
+    flex: 1;
+}
+
+.col1 {
+    display: flex;
+    flex-direction: column;
+}
+
+.col1 .a, .col1 .b {
+    flex: 1;
+}
+
+.col2 .c {
+    height: 100%;
+}
+
+
+
+.info-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 300px;
+    height: 130px;
+    transform: translate(-50%, -50%);
+    border: 4px solid black;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Arial Black', sans-serif;
+    padding: 5px;
+    box-sizing: border-box;
+    background: white;
+}
+
+.info-card .com-info {
+    width: 300px;
+    height: 130px;
+    margin: 0 0 0 0;
+    align-content: center;
+    text-align: center;
+    vertical-align: middle;
+    /*font-size: 21px;*/
+    /*font-family: 'mandalore', sans-serif;*/
+    /*text-transform: lowercase;*/
+}
+
+.info-card .com-info p {
+    font-size: 21px;
+    margin: 0 0 0 0;
+    font-family: 'mandalore', sans-serif;
+    /*text-transform: lowercase;*/
+    /*text-align: center;*/
+    /*vertical-align: middle;*/
+}
+
+.info-card .text-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1.2;
+    width: 150px;
+    column-width: 150px;
+}
+
+.info-card .text-content h1 {
+    /*width: 150px;*/
+    font-size: 36px;
+    margin: 0 0 6px 0;
+    font-family: 'mandalore', sans-serif;
+    font-weight: normal;
+    text-transform: lowercase;
+    text-align: center;
+    vertical-align: top;
+}
+
+.info-card .text-content p {
+    /*width: 150px;*/
+    font-size: 21px;
+    margin: 0 0 0 0;
+    font-family: 'mandalore', sans-serif;
+    text-transform: lowercase;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/*.qr-container .qr-container {*/
+/*    vertical-align: middle;*/
+/*    !*width: 150px;*!*/
+/*    !*height: 100px;*!*/
+/*    !*object-fit: contain;*!*/
+/*    !*border: none;*!*/
+/*}*/
+
+.info-card .qr-container img {
+    vertical-align: middle;
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    /*border: none;*/
+    border: 2px solid black;
+    border-radius: 8px;
+    padding: 5px;
+    /*box-sizing: border-box;*/
+}
+
+@font-face {
+    font-family: 'mandalore';
+    src: url('../fonts/mandalore/mandalore.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/*@font-face {*/
+/*    font-family: 'mandalore bold';*/
+/*    src: url('/fonts/mandalore/mandalore.ttf') format('truetype');*/
+/*    font-weight: bold;*/
+/*    font-style: bold;*/
+/*}*/

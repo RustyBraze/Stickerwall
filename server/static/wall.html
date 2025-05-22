@@ -3,80 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <title>Sticker Party!</title>
-    <style>
-        html, body {
-            margin: 0;
-            overflow: hidden;
-            background: dimgray;
-            /*background-image: url("https://i.imgur.com/vccw0IO.jpeg");*/
-            background-image: url("img/background1.jpeg");
-            background-position: center;
-            background-repeat: no-repeat;
-            /*background-size: auto 100%;*/
-            background-size: cover;
-            /*background-size: 100% auto;*/
-        }
-        canvas {
-            display: block;
-        }
-        /*#stickerDIV {*/
-        /*    position: absolute;*/
-        /*    top: 0;*/
-        /*    left: 0;*/
-        /*    width: 100%;*/
-        /*    height: 100%;*/
-        /*}*/
-
-        @keyframes gradient {
-            0% {
-                background-position: 0% 50%;
-            }
-            50% {
-                background-position: 100% 50%;
-            }
-            100% {
-                background-position: 0% 50%;
-            }
-        }
-
-
-        #messageDIV {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            /*width: 25%;*/
-            width: 200px;
-            height: 200px;
-
-            /*display: flex;*/
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-
-            /*background: #94039e;*/
-            /*background-blend-mode: overlay;*/
-            background: linear-gradient(-45deg, #94039e, #3e0142, #7f0489, #810289);
-            background-size: 200% 200%;
-            animation: gradient 20s ease infinite;
-
-            transform: translate(-50%, -50%);
-
-            color: white;
-            font-size: 20px;
-            font-family: 'Courier New', Courier, monospace;
-        }
-    </style>
 
 <!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>-->
     <script src="js/matter.min.js"></script>
+    <link rel="stylesheet" href="css/wall.css"/>
 
 </head>
 <body>
 <canvas id="stickerCanvas"></canvas>
 <!--<div id="stickerDIV"></div>-->
 <!--<div id="messageDIV" style="position: absolute; top: 50%; left: 50%; background: gray; background-blend-mode: overlay; transform: translate(-50%, -50%); color: white; font-size: 20px; font-family: 'Courier New', Courier, monospace;">-->
-<div id="messageDIV">
-    <p>Sticker Party!</p>
+<!--<div id="messageDIV">-->
+<!--    <p>Sticker Party!</p>-->
+<!--</div>-->
+
+<div class="info-card" id="messageCard">
+    xxxxxxxxxxxxxxxxxxx
 </div>
 
 <script src="js/qrcode.min.js"></script>
